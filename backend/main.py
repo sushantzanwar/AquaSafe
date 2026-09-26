@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
@@ -6,11 +6,21 @@ from contextlib import asynccontextmanager
 import datetime
 import sys
 import os
-import httpx
+try:
+    import httpx
+except ImportError:
+    httpx = None
 import math
 
 # Import backend core modules
-from core.remote_sensing import generate_mock_sentinel_scene, process_scene_indices
+from core.remote_sensing import (
+    generate_mock_sentinel_scene,
+    generate_realistic_sentinel_scene,
+    render_satellite_image_png,
+    render_thematic_layer_image,
+    get_thematic_layers_metadata,
+    process_scene_indices
+)
 from models.water_segmentation import generate_water_mask
 from core.database import init_db, save_analysis, get_history, get_baseline, get_analysis
 from core.anomaly import calculate_anomaly_score, calculate_priority
@@ -30,10 +40,7 @@ app = FastAPI(title="AquaWatch Backend API", description="Intelligence pipeline 
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -52,6 +59,18 @@ class AnalysisResponse(BaseModel):
     anomaly: Dict[str, Any]
     priority: Dict[str, int]
     geojson: Dict[str, Any]
+
+# ---- Locality Points Database ----
+LOCALITY_POINTS = [
+    {"id": "ambazari_center", "name": "Ambazari Lake — Center Point", "water_body": "Ambazari Lake", "lat": 21.1292, "lng": 79.0394, "district": "Nagpur West"},
+    {"id": "ambazari_spillway", "name": "Ambazari Lake — Spillway Intake", "water_body": "Ambazari Lake", "lat": 21.1325, "lng": 79.0431, "district": "Nagpur West"},
+    {"id": "futala_north", "name": "Futala Lake — North Inlet", "water_body": "Futala Lake", "lat": 21.1558, "lng": 79.0478, "district": "Nagpur North"},
+    {"id": "gorewada_intake", "name": "Gorewada Reservoir — Treatment Intake", "water_body": "Gorewada Lake", "lat": 21.1891, "lng": 79.0321, "district": "Nagpur NW"},
+    {"id": "gandhisagar_east", "name": "Gandhisagar Lake — East Basin", "water_body": "Gandhisagar Lake", "lat": 21.1448, "lng": 79.0965, "district": "Central Nagpur"},
+    {"id": "sonegaon_south", "name": "Sonegaon Lake — South Reach", "water_body": "Sonegaon Lake", "lat": 21.0934, "lng": 79.0562, "district": "Nagpur South"},
+    {"id": "erie_maumee", "name": "Lake Erie — Maumee Bay Outlet", "water_body": "Lake Erie", "lat": 41.7450, "lng": -83.4100, "district": "West Basin"},
+    {"id": "erie_sandusky", "name": "Lake Erie — Sandusky Bay Sector", "water_body": "Lake Erie", "lat": 41.4750, "lng": -82.8250, "district": "Central Shore"},
+]
 
 # ─────────────────────────────────────────────────────────────────────────────
 # DYNAMIC OSM / OVERPASS LAYER
@@ -629,3 +648,59 @@ async def get_geojson(analysis_id: str):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SATELLITE PROOF & THEMATIC API GATEWAY ENDPOINTS
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.get("/api/locality-points")
+async def get_locality_points():
+    """List of monitored locality points with coordinates for manual selection or dropdown."""
+    return LOCALITY_POINTS
+
+
+@app.get("/api/satellite-layers")
+async def get_satellite_layers(
+    lat: float = 21.1292,
+    lng: float = 79.0394,
+    date: str = "2026-09-25"
+):
+    """
+    API Gateway: Computes and returns all 6 thematic satellite analysis layer definitions
+    over the actual satellite map without any hardcoded frontend data.
+    """
+    return get_thematic_layers_metadata(lat=lat, lng=lng, date_str=date)
+
+
+@app.get("/api/satellite-image")
+async def get_thematic_satellite_image(
+    layer: str = "algal",
+    lat: float = 21.1292,
+    lng: float = 79.0394,
+    date: str = "2026-09-25"
+):
+    """
+    API Gateway: Streams the high-definition satellite imagery map with the
+    specific requested thematic analysis layer overlay:
+      - algal (Chlorophyll-a / NDCI Algal Bloom)
+      - erosion (Turbidity & Shoreline Cut/Fill NDTI)
+      - thermal (Industrial Discharge Thermal Plume)
+      - runoff (Topographical Flow Accumulation)
+      - sewage (Hypoxia & Dissolved Oxygen Depletion)
+      - change (Multi-temporal Change Detection CVA)
+    """
+    img_bytes = render_thematic_layer_image(layer, lat=lat, lng=lng, date_str=date)
+    return Response(content=img_bytes, media_type="image/jpeg")
+
+
+@app.get("/api/analysis/{analysis_id}/satellite-image")
+async def get_satellite_image_endpoint(
+    analysis_id: str,
+    mode: str = "rgb",
+    lat: float = 21.1292,
+    lng: float = 79.0394,
+    date: str = "2026-09-25"
+):
+    img_bytes = render_thematic_layer_image(mode, lat=lat, lng=lng, date_str=date)
+    return Response(content=img_bytes, media_type="image/jpeg")

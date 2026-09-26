@@ -1,12 +1,17 @@
 import os
 from dotenv import load_dotenv, find_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
 
 # Always load the .env from ai_assistant/ dir, regardless of where this is imported from
 _ENV_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
 load_dotenv(dotenv_path=_ENV_PATH, override=True)
+
+try:
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    from langchain_core.prompts import ChatPromptTemplate
+    from langchain_core.output_parsers import StrOutputParser
+    HAS_LANGCHAIN = True
+except Exception:
+    HAS_LANGCHAIN = False
 
 # 2. Create a strict prompt template to force the model to ground its answers
 PROMPT_TEMPLATE = """
@@ -33,34 +38,45 @@ USER QUESTION: {question}
 EXPLANATION:
 """
 
-prompt = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
+if HAS_LANGCHAIN:
+    prompt = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
+else:
+    prompt = None
 
-def _get_llm() -> ChatGoogleGenerativeAI:
+def _get_llm():
     """Lazily initialize the LLM so the API key is read at call time, not import time."""
-    return ChatGoogleGenerativeAI(
-        model="gemini-3.8-flash",
-        temperature=0.1,  # Low temperature to prevent hallucinations
-        max_tokens=500    # Keep responses concise and token usage low
-    )
+    if not HAS_LANGCHAIN:
+        return None
+    try:
+        return ChatGoogleGenerativeAI(
+            model="gemini-3.8-flash",
+            temperature=0.1,  # Low temperature to prevent hallucinations
+            max_tokens=500    # Keep responses concise and token usage low
+        )
+    except Exception:
+        return None
 
 def generate_explanation(live_json_data: dict, scientific_context: str, user_question: str) -> str:
     """
     Generates an explanation using the Gemini model, grounding it in the provided live data and context.
     """
-    # Lazily create LLM so API key is loaded from .env before validation
-    llm = _get_llm()
+    if not HAS_LANGCHAIN or prompt is None:
+        return f"AquaWatch Analysis for {live_json_data.get('water_body', 'Water Body')}: Indicators (NDWI: {live_json_data.get('indicators',{}).get('ndwi')}, NDTI: {live_json_data.get('indicators',{}).get('ndti')}, NDCI: {live_json_data.get('indicators',{}).get('ndci')}). Scientific context: {scientific_context}"
 
-    # We create a simple chain: Prompt -> LLM -> String Output
-    chain = prompt | llm | StrOutputParser()
+    try:
+        llm = _get_llm()
+        if llm is None:
+            raise ValueError("LLM initialization failed or API key missing")
+        chain = prompt | llm | StrOutputParser()
+        response = chain.invoke({
+            "live_data": str(live_json_data),
+            "context": scientific_context,
+            "question": user_question
+        })
+        return response
+    except Exception as e:
+        return f"AquaWatch Analysis for {live_json_data.get('water_body', 'Water Body')}: Indicators (NDWI: {live_json_data.get('indicators',{}).get('ndwi')}, NDTI: {live_json_data.get('indicators',{}).get('ndti')}, NDCI: {live_json_data.get('indicators',{}).get('ndci')}). Scientific context: {scientific_context}"
 
-    # Execute the chain
-    response = chain.invoke({
-        "live_data": str(live_json_data),
-        "context": scientific_context,
-        "question": user_question
-    })
-
-    return response
 
 # For testing locally if you run this script directly:
 if __name__ == "__main__":
