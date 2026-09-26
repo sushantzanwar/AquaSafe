@@ -566,29 +566,41 @@ footer {
 <div class="kpi-strip reveal">
   <div class="kpi-card reveal reveal-d1">
     <div class="kpi-label">Monitored Body</div>
-    <div class="kpi-val title">Lake Erie<br><span style="font-size:14px;color:var(--muted);font-family:'JetBrains Mono'">West Basin</span></div>
-    <div class="kpi-sub">ID: LE-042 · 2024-10-24</div>
+    <div class="kpi-val title" id="kpi-name">—<br><span style="font-size:14px;color:var(--muted);font-family:'JetBrains Mono'">Select below</span></div>
+    <div class="kpi-sub" id="kpi-id">Run an analysis to load data</div>
   </div>
   <div class="kpi-card reveal reveal-d2">
-    <div class="kpi-label">Surface Extent</div>
-    <div class="kpi-val"><span class="counter" data-to="1245">0</span></div>
-    <div class="kpi-sub">km² surface extent</div>
+    <div class="kpi-label">Anomaly Status</div>
+    <div class="kpi-val" id="kpi-status">—</div>
+    <div class="kpi-sub" id="kpi-score">Anomaly score</div>
   </div>
   <div class="kpi-card reveal reveal-d3">
-    <div class="kpi-label">Active Anomaly Zones</div>
-    <div class="kpi-val warn"><span class="counter" data-to="3">0</span></div>
-    <div class="kpi-sub">of 4 sectors flagged</div>
+    <div class="kpi-label">Anomalous Area</div>
+    <div class="kpi-val warn" id="kpi-zones">—</div>
+    <div class="kpi-sub">Shift from historical baseline</div>
   </div>
   <div class="kpi-card reveal reveal-d4">
-    <div class="kpi-label">Highest Priority Score</div>
-    <div class="kpi-val danger">8.4<span style="font-size:18px;color:var(--faint)">/10</span></div>
-    <div class="kpi-sub">1,200 m to Intake Alpha</div>
+    <div class="kpi-label">Priority Score</div>
+    <div class="kpi-val danger" id="kpi-priority">—<span style="font-size:18px;color:var(--faint)">/100</span></div>
+    <div class="kpi-sub" id="kpi-date">Awaiting analysis</div>
   </div>
   <div class="kpi-card reveal reveal-d4">
     <div class="kpi-label">Pipeline Confidence</div>
-    <div class="kpi-val blue">94<span style="font-size:20px">%</span></div>
-    <div class="kpi-sub">Clear sky · Low sunglint</div>
+    <div class="kpi-val blue" id="kpi-confidence">—<span style="font-size:20px">%</span></div>
+    <div class="kpi-sub" id="kpi-ndci">NDCI / NDTI indicators</div>
   </div>
+</div>
+
+<!-- ══ WATER BODY SELECTOR ══ -->
+<div style="display:flex;align-items:center;gap:16px;padding:16px 40px;background:var(--surface);border-bottom:1px solid var(--border-sub);">
+  <span style="font-family:'JetBrains Mono';font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">Select Water Body →</span>
+  <select id="wb-select" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:7px 14px;font-size:13px;font-family:'JetBrains Mono';cursor:pointer;outline:none;">
+    <option value="">-- Loading water bodies... --</option>
+  </select>
+  <button id="analyze-btn" onclick="runAnalysis()" style="background:var(--green);color:#000;border:none;border-radius:6px;padding:8px 20px;font-weight:700;font-size:13px;cursor:pointer;font-family:'Syne',sans-serif;transition:background 0.2s;" onmouseover="this.style.background='#46c957'" onmouseout="this.style.background='var(--green)'">
+    ▶ Analyze
+  </button>
+  <span id="analyze-status" style="font-size:12px;color:var(--muted);font-family:'JetBrains Mono';"></span>
 </div>
 
 <!-- ══ GEOSPATIAL MAP ════════════════════════════════ -->
@@ -651,12 +663,31 @@ footer {
   <div class="gateway-panel reveal reveal-d2">
     <div class="gateway-eyebrow">Next Sequence Step</div>
     <div class="gateway-title">Proceed to<br>Analysis Workspace</div>
-    <div class="gateway-body">Access complete zonal anomaly evidence, real-time alert feeds, and priority site rankings.</div>
+    <div class="gateway-body">Access complete zonal evidence, reference vs current observation grids, and priority rankings.</div>
     
-    <div class="gateway-features">
-      <div class="gf-item"><span class="gf-dot"></span> 4-Zone Anomaly Evidence &amp; Baselines</div>
-      <div class="gf-item"><span class="gf-dot"></span> Real-time Emergency Alert Feed</div>
-      <div class="gf-item"><span class="gf-dot"></span> Mathematical Priority Ranking Formula</div>
+    <div class="gateway-features" style="margin: 20px 0; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; border: 1px solid var(--border-sub); display: flex; flex-direction: column; gap: 12px;">
+      <div style="display:flex; justify-content: space-between; font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--faint);">
+        <span>REFERENCE (BASELINE)</span>
+        <span>CURRENT OBSERVATION</span>
+      </div>
+      <div style="display:flex; justify-content: space-between; align-items: center;">
+        <div style="display:grid; grid-template-columns: repeat(5, 12px); gap: 3px;">
+          <div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div>
+          <div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div>
+          <div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div>
+        </div>
+        
+        <span style="color:var(--muted)">→</span>
+        
+        <div style="display:grid; grid-template-columns: repeat(5, 12px); gap: 3px;">
+          <div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div>
+          <div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--red); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--red); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div>
+          <div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--red); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--red); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--red); border-radius:2px;"></div><div style="width:12px; height:12px; background:var(--green); border-radius:2px;"></div>
+        </div>
+      </div>
+      <div style="font-size: 12px; color: var(--text); text-align: right; margin-top: 4px;">
+        <span style="color:var(--red); font-weight: 600;">23% Anomalous Area</span> detected
+      </div>
     </div>
 
     <a href="assistant.html" class="btn-gateway" id="gateway-btn">
@@ -694,30 +725,75 @@ const revealObs = new IntersectionObserver((entries) => {
 }, { threshold: 0.08 });
 document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
 
+const API = 'http://localhost:8000';
+
 /* ── LEAFLET MAP ──────────────────────────────── */
 let activeLayer = 'RGB';
-const map = L.map('map', { zoomControl: true }).setView([41.8241, -83.1521], 10);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
+let zoneLayer = null;
 
-const zones = [
-  { name: 'Maumee Bay Outlet',  coords: [[41.72,-83.47],[41.72,-83.35],[41.77,-83.35],[41.77,-83.47]], color: '#f85149' },
-  { name: 'Central Basin',      coords: [[41.80,-83.20],[41.80,-83.08],[41.87,-83.08],[41.87,-83.20]], color: '#e3b341' },
-  { name: 'Sandusky Bay',       coords: [[41.43,-82.90],[41.43,-82.75],[41.52,-82.75],[41.52,-82.90]], color: '#e3b341' },
-  { name: 'Eastern Open Water', coords: [[41.90,-82.60],[41.90,-82.40],[41.98,-82.40],[41.98,-82.60]], color: '#3fb950' },
-];
-zones.forEach(z => {
-  L.polygon(z.coords, { color: z.color, weight: 1.5, opacity: 0.9, fillOpacity: 0.12 }).addTo(map).bindTooltip(z.name);
-});
+// Default view: Nagpur, India (where Ambazari/Futala/Gorewada lakes are)
+const map = L.map('map', { zoomControl: true }).setView([21.15, 79.09], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  maxZoom: 19
+}).addTo(map);
+document.getElementById('map').style.filter = 'invert(1) hue-rotate(180deg) brightness(0.85) saturate(0.9)';
 
 map.on('mousemove', e => {
   document.getElementById('coord-hud').innerHTML =
     `LAT: ${e.latlng.lat.toFixed(4)}<br>LON: ${e.latlng.lng.toFixed(4)}<br>LAYER: ${activeLayer}`;
 });
 
-map.on('click', e => {
-  L.circleMarker(e.latlng, { radius: 7, color: '#3fb950', fillColor: '#3fb950', fillOpacity: 0.5, weight: 1.5 }).addTo(map);
-  sessionStorage.setItem('pin_lat', e.latlng.lat.toFixed(4));
-  sessionStorage.setItem('pin_lon', e.latlng.lng.toFixed(4));
+// ── MAP CLICK → OSM LAKE DETECTION ─────────────────────────────────
+let clickMarker = null;
+map.on('click', async e => {
+  const { lat, lng } = e.latlng;
+
+  // Drop a pulsing marker immediately for feedback
+  if (clickMarker) map.removeLayer(clickMarker);
+  clickMarker = L.circleMarker([lat, lng], {
+    radius: 8, color: '#58a6ff', fillColor: '#58a6ff',
+    fillOpacity: 0.5, weight: 2
+  }).bindTooltip('🔍 Detecting lake…', { permanent: true, direction: 'top' }).addTo(map);
+  clickMarker.openTooltip();
+
+  sessionStorage.setItem('pin_lat', lat.toFixed(5));
+  sessionStorage.setItem('pin_lon', lng.toFixed(5));
+
+  try {
+    const res = await fetch(`${API}/api/detect-lake?lat=${lat}&lon=${lng}`);
+    if (!res.ok) {
+      const err = await res.json();
+      clickMarker.setTooltipContent(`❌ ${err.detail || 'No lake found here'}`);
+      setTimeout(() => { if (clickMarker) { map.removeLayer(clickMarker); clickMarker = null; } }, 3000);
+      return;
+    }
+    const lake = await res.json();
+
+    // Update tooltip with detected lake name
+    clickMarker.setTooltipContent(`✅ ${lake.name}`);
+    setTimeout(() => { if (clickMarker) { map.removeLayer(clickMarker); clickMarker = null; } }, 2500);
+
+    // Draw the real OSM polygon
+    if (zoneLayer) { map.removeLayer(zoneLayer); zoneLayer = null; }
+    if (lake.geojson && lake.geojson.features && lake.geojson.features.length > 0) {
+      zoneLayer = L.geoJSON(lake.geojson, {
+        style: { color: '#58a6ff', weight: 2, opacity: 0.9,
+                 fillColor: '#58a6ff', fillOpacity: 0.2, dashArray: '6 4' }
+      }).addTo(map);
+      zoneLayer.bindTooltip(`${lake.name} — click Analyze`);
+      map.fitBounds(zoneLayer.getBounds(), { padding: [60, 60], maxZoom: 15 });
+    } else if (lake.centroid) {
+      map.setView([lake.centroid.lat, lake.centroid.lon], 14);
+    }
+
+    // Rebuild dropdown: detected lake is the selection, nearby are in group
+    rebuildDropdownFromDetection(lake);
+
+  } catch (err) {
+    clickMarker.setTooltipContent(`⚠ Backend unreachable`);
+    setTimeout(() => { if (clickMarker) { map.removeLayer(clickMarker); clickMarker = null; } }, 3000);
+  }
 });
 
 function setLayer(btn, layer) {
@@ -725,6 +801,240 @@ function setLayer(btn, layer) {
   document.querySelectorAll('.hud-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
 }
+
+/* ── BACKEND API INTEGRATION ─────────────────────── */
+
+// ── PREVIEW LAKE FROM DROPDOWN (fetches real OSM polygon) ────────────
+async function previewLake(name) {
+  if (!name) return;
+  if (zoneLayer) { map.removeLayer(zoneLayer); zoneLayer = null; }
+
+  try {
+    const res = await fetch(`${API}/api/lake-geojson?name=${encodeURIComponent(name)}`);
+    if (!res.ok) return;
+    const geojson = await res.json();
+    if (geojson.features && geojson.features.length > 0) {
+      zoneLayer = L.geoJSON(geojson, {
+        style: { color: '#58a6ff', weight: 2, opacity: 0.85,
+                 fillColor: '#58a6ff', fillOpacity: 0.15, dashArray: '6 4' }
+      }).addTo(map);
+      zoneLayer.bindTooltip(`${name} — click Analyze`);
+      map.fitBounds(zoneLayer.getBounds(), { padding: [60, 60], maxZoom: 15 });
+    }
+  } catch (_) { /* backend offline — just show name in header */ }
+}
+
+// ── BUILD DROPDOWN FROM OSM DETECTION RESULT ────────────────────────
+function rebuildDropdownFromDetection(lake) {
+  const sel = document.getElementById('wb-select');
+  sel.innerHTML = '';
+
+  // Main option: the detected lake
+  const mainGroup = document.createElement('optgroup');
+  mainGroup.label = '🛰  Detected Lake';
+  const opt = document.createElement('option');
+  opt.value = lake.name;
+  opt.textContent = lake.name;
+  mainGroup.appendChild(opt);
+  sel.appendChild(mainGroup);
+
+  // Nearby group
+  if (lake.nearby && lake.nearby.length > 0) {
+    const nearbyGroup = document.createElement('optgroup');
+    nearbyGroup.label = `📍 Nearby Lakes (within 15 km)`;
+    lake.nearby.forEach(n => {
+      const o = document.createElement('option');
+      o.value = n.name;
+      o.textContent = `${n.name}  (${n.distance_km} km)`;
+      nearbyGroup.appendChild(o);
+    });
+    sel.appendChild(nearbyGroup);
+  }
+
+  sel.value = lake.name;
+
+  // Wire change event fresh
+  sel.onchange = () => {
+    const selected = sel.value;
+    if (selected) previewLake(selected);
+  };
+}
+
+// ── BUILD DROPDOWN FROM /api/water-bodies RESPONSE ───────────────────
+function buildDropdown(bodies, nearby) {
+  const sel = document.getElementById('wb-select');
+  sel.innerHTML = '';
+
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = '-- Click map or select --';
+  sel.appendChild(placeholder);
+
+  if (bodies.length === 0) {
+    const o = document.createElement('option');
+    o.disabled = true;
+    o.textContent = '⚠ Click the map to detect a lake';
+    sel.appendChild(o);
+    return;
+  }
+
+  const mainGroup = document.createElement('optgroup');
+  mainGroup.label = '🛰  Lakes Near Current View';
+  bodies.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    mainGroup.appendChild(opt);
+  });
+  sel.appendChild(mainGroup);
+
+  sel.onchange = () => {
+    const selected = sel.value;
+    if (!selected) return;
+    previewLake(selected);
+    rebuildNearby(selected, bodies, nearby);
+  };
+}
+
+// ── REBUILD NEARBY GROUP IN DROPDOWN ────────────────────────────────
+function rebuildNearby(selected, allBodies, nearby) {
+  const sel = document.getElementById('wb-select');
+  // Remove every optgroup after the first (main) one
+  const allGroups = Array.from(sel.querySelectorAll('optgroup'));
+  allGroups.forEach((g, i) => { if (i > 0) g.remove(); });
+
+  const nearbyNames = (nearby[selected] || []).filter(n => allBodies.includes(n));
+  if (nearbyNames.length === 0) return;
+
+  const nearbyGroup = document.createElement('optgroup');
+  nearbyGroup.label = '📍 Nearby Lakes';
+  nearbyNames.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    nearbyGroup.appendChild(opt);
+  });
+  sel.appendChild(nearbyGroup);
+}
+
+// ── FETCH WATER BODIES NEAR MAP CENTRE ──────────────────────────────
+async function fetchWaterBodies() {
+  const centre = map.getCenter();
+  try {
+    const res = await fetch(`${API}/api/water-bodies?lat=${centre.lat}&lon=${centre.lng}&radius_km=20`);
+    const data = await res.json();
+
+    const bodies = Array.isArray(data) ? data : (data.water_bodies || []);
+    const nearby = data.nearby || {};
+    const meta   = data.lakes_meta || [];
+
+    buildDropdown(bodies, nearby);
+
+    // Auto-select + preview the first lake
+    if (bodies.length > 0) {
+      document.getElementById('wb-select').value = bodies[0];
+      previewLake(bodies[0]);
+      rebuildNearby(bodies[0], bodies, nearby);
+    }
+
+    // If meta includes lat/lon, zoom to first lake
+    if (meta.length > 0 && meta[0].lat) {
+      map.setView([meta[0].lat, meta[0].lon], 13);
+    }
+
+  } catch (err) {
+    // Backend offline
+    const sel = document.getElementById('wb-select');
+    sel.innerHTML = '<option value="">⚠ Click map to detect lakes</option>';
+    document.getElementById('analyze-status').textContent = '⚠ Cannot reach backend — click map to detect lakes';
+    document.getElementById('analyze-status').style.color = 'var(--yellow)';
+  }
+}
+
+// Run analysis on selected water body and update entire dashboard
+async function runAnalysis() {
+  const wb = document.getElementById('wb-select').value;
+  if (!wb) return;
+
+  const btn = document.getElementById('analyze-btn');
+  const status = document.getElementById('analyze-status');
+  btn.disabled = true;
+  btn.textContent = '⟳ Analyzing...';
+  status.textContent = `Sending ${wb} to pipeline...`;
+  status.style.color = 'var(--muted)';
+
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const res = await fetch(`${API}/api/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ water_body: wb, date: today })
+    });
+
+    if (!res.ok) throw new Error(`Server error: ${res.status}`);
+    const data = await res.json();
+
+    updateDashboard(data);
+    status.textContent = `✓ Analysis complete — ${data.analysis_id}`;
+    status.style.color = 'var(--green)';
+  } catch (err) {
+    status.textContent = `✗ ${err.message}`;
+    status.style.color = 'var(--red)';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▶ Analyze';
+  }
+}
+
+// Update all KPI cards and map from an analysis response
+function updateDashboard(data) {
+  const statusColor = { 'HIGH': 'var(--red)', 'WARNING': 'var(--yellow)', 'NORMAL': 'var(--green)' };
+  const col = statusColor[data.anomaly.status] || 'var(--text)';
+
+  // KPI 1 — Water body name
+  document.getElementById('kpi-name').innerHTML =
+    `${data.water_body}<br><span style="font-size:13px;color:var(--muted);font-family:'JetBrains Mono'">${data.date}</span>`;
+  document.getElementById('kpi-id').textContent = `ID: ${data.analysis_id}`;
+
+  // KPI 2 — Anomaly status
+  document.getElementById('kpi-status').textContent = data.anomaly.status;
+  document.getElementById('kpi-status').style.color = col;
+  document.getElementById('kpi-score').textContent = `Score: ${data.anomaly.score}/100 · σ ${data.anomaly.deviation_sigma ?? '—'}`;
+
+  // KPI 3 — Anomalous Area (%)
+  const areaPct = Math.min(100, Math.max(0, Math.round(data.anomaly.score * 0.35 + (data.indicators.ndci * 10))));
+  document.getElementById('kpi-zones').innerHTML = `${areaPct}<span style="font-size:20px">%</span>`;
+  document.getElementById('kpi-zones').style.color = areaPct > 20 ? 'var(--red)' : areaPct > 5 ? 'var(--yellow)' : 'var(--green)';
+
+  // KPI 4 — Priority score
+  document.getElementById('kpi-priority').innerHTML =
+    `${data.priority.score}<span style="font-size:18px;color:var(--faint)">/100</span>`;
+  document.getElementById('kpi-date').textContent = `Analysis date: ${data.date}`;
+
+  // KPI 5 — Confidence + indicators
+  const conf = Math.round(data.anomaly.confidence * 100);
+  document.getElementById('kpi-confidence').innerHTML =
+    `${conf}<span style="font-size:20px">%</span>`;
+  document.getElementById('kpi-ndci').textContent =
+    `NDCI: ${data.indicators.ndci} · NDTI: ${data.indicators.ndti} · NDWI: ${data.indicators.ndwi}`;
+
+  // MAP — draw GeoJSON zone from backend response
+  if (zoneLayer) map.removeLayer(zoneLayer);
+  if (data.geojson && data.geojson.features && data.geojson.features.length > 0) {
+    zoneLayer = L.geoJSON(data.geojson, {
+      style: { color: col, weight: 2, opacity: 0.9, fillOpacity: 0.2 }
+    }).addTo(map);
+    zoneLayer.bindTooltip(`${data.water_body} — ${data.anomaly.status}`);
+    map.fitBounds(zoneLayer.getBounds(), { padding: [40, 40], maxZoom: 15 });
+  }
+
+  // Save analysis ID for the assistant page
+  sessionStorage.setItem('analysis_id', data.analysis_id);
+  sessionStorage.setItem('water_body', data.water_body);
+}
+
+// Load water bodies on page ready
+fetchWaterBodies();
 
 /* ── SPECTRAL CHART ──────────────────────────── */
 const specCtx = document.getElementById('spec-chart').getContext('2d');

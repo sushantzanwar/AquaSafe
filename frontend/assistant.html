@@ -551,9 +551,9 @@ footer { border-top: 1px solid var(--border-sub); padding: 40px; background: var
 <!-- ══ PAGE HEADER ═══════════════════════════════════ -->
 <div class="page-header">
   <div class="page-header-inner">
-    <div class="page-eyebrow">Sequence Step 2 · Basin LE-042 Workspace</div>
+    <div class="page-eyebrow" id="pg-eyebrow">Sequence Step 2 · Loading workspace...</div>
     <h1 class="page-title">Analysis &amp; Report</h1>
-    <p class="page-sub">Zonal anomaly evidence, live emergency alert feeds, and priority site rankings evaluated per Sentinel-2 overpass.</p>
+    <p class="page-sub" id="pg-sub">Zonal anomaly evidence, live emergency alert feeds, and priority site rankings evaluated per Sentinel-2 overpass.</p>
 
     <!-- Clean Tab Navigation (Anomaly Evidence, Alert Feed, Site Ranking) -->
     <div class="tab-bar">
@@ -570,7 +570,7 @@ footer { border-top: 1px solid var(--border-sub); padding: 40px; background: var
   <!-- ── 1. ANOMALY EVIDENCE ───────────────────────── -->
   <section id="anomaly" class="reveal">
     <div class="section-head">
-      <div class="s-eyebrow">Zonal Analysis · 4 Sectors</div>
+      <div class="s-eyebrow" id="anomaly-eyebrow">Zonal Analysis · 4 Sectors</div>
       <h2 class="s-title">1. Anomaly Evidence</h2>
     </div>
 
@@ -579,12 +579,12 @@ footer { border-top: 1px solid var(--border-sub); padding: 40px; background: var
       <div class="zone-card z-severe reveal reveal-d1">
         <div class="zone-top">
           <div>
-            <div class="zone-name">Maumee Bay Outlet</div>
-            <div class="zone-id">ZONE-01 · North Basin · 312 km²</div>
+            <div class="zone-name" id="z1-name">North Inlet</div>
+            <div class="zone-id" id="z1-id">ZONE-01 · Primary · —</div>
           </div>
-          <span class="sev-badge sev-severe">SEVERE +3.2σ</span>
+          <span class="sev-badge sev-severe" id="z1-sev">SEVERE +3.2σ</span>
         </div>
-        <div class="zone-score" style="color:var(--red)">8.4</div>
+        <div class="zone-score" style="color:var(--red)" id="z1-score">8.4</div>
         <div class="zone-score-sub">Fused Anomaly Risk Score / 10</div>
         
         <div class="ind-row">
@@ -605,12 +605,12 @@ footer { border-top: 1px solid var(--border-sub); padding: 40px; background: var
       <div class="zone-card z-warn reveal reveal-d2">
         <div class="zone-top">
           <div>
-            <div class="zone-name">Central Basin Transition</div>
-            <div class="zone-id">ZONE-02 · Central · 489 km²</div>
+            <div class="zone-name" id="z2-name">East Basin</div>
+            <div class="zone-id" id="z2-id">ZONE-02 · Secondary · —</div>
           </div>
-          <span class="sev-badge sev-warn">WARNING +1.8σ</span>
+          <span class="sev-badge sev-warn" id="z2-sev">WARNING +1.8σ</span>
         </div>
-        <div class="zone-score" style="color:var(--yellow)">5.7</div>
+        <div class="zone-score" style="color:var(--yellow)" id="z2-score">5.7</div>
         <div class="zone-score-sub">Fused Anomaly Risk Score / 10</div>
 
         <div class="ind-row">
@@ -631,12 +631,12 @@ footer { border-top: 1px solid var(--border-sub); padding: 40px; background: var
       <div class="zone-card z-watch reveal reveal-d3">
         <div class="zone-top">
           <div>
-            <div class="zone-name">Sandusky Bay</div>
-            <div class="zone-id">ZONE-03 · South Basin · 218 km²</div>
+            <div class="zone-name" id="z3-name">South Basin</div>
+            <div class="zone-id" id="z3-id">ZONE-03 · Tertiary · —</div>
           </div>
-          <span class="sev-badge sev-watch">WATCH +1.2σ</span>
+          <span class="sev-badge sev-watch" id="z3-sev">WATCH +1.2σ</span>
         </div>
-        <div class="zone-score" style="color:var(--green)">3.4</div>
+        <div class="zone-score" style="color:var(--green)" id="z3-score">3.4</div>
         <div class="zone-score-sub">Fused Anomaly Risk Score / 10</div>
 
         <div class="ind-row">
@@ -653,12 +653,12 @@ footer { border-top: 1px solid var(--border-sub); padding: 40px; background: var
       <div class="zone-card z-ok reveal reveal-d4">
         <div class="zone-top">
           <div>
-            <div class="zone-name">Eastern Open Water</div>
-            <div class="zone-id">ZONE-04 · East Arm · 226 km²</div>
+            <div class="zone-name" id="z4-name">Open Water</div>
+            <div class="zone-id" id="z4-id">ZONE-04 · Distal · —</div>
           </div>
-          <span class="sev-badge sev-ok">NOMINAL</span>
+          <span class="sev-badge sev-ok" id="z4-sev">NOMINAL</span>
         </div>
-        <div class="zone-score" style="color:var(--blue)">1.2</div>
+        <div class="zone-score" style="color:var(--blue)" id="z4-score">1.2</div>
         <div class="zone-score-sub">Fused Anomaly Risk Score / 10</div>
 
         <div class="ind-row">
@@ -676,7 +676,7 @@ footer { border-top: 1px solid var(--border-sub); padding: 40px; background: var
   <!-- ── 2. ALERT FEED ─────────────────────────────── -->
   <section id="alerts" class="reveal">
     <div class="section-head">
-      <div class="s-eyebrow">Real-Time Advisories · Basin LE-042</div>
+      <div class="s-eyebrow" id="alert-eyebrow">Real-Time Advisories · Loading...</div>
       <h2 class="s-title">2. Alert Feed</h2>
     </div>
 
@@ -686,11 +686,11 @@ footer { border-top: 1px solid var(--border-sub); padding: 40px; background: var
           <div class="alert-inner">
             <div class="alert-top">
               <span class="sev-badge sev-severe">● SEVERE</span>
-              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint)">2024-10-24 14:32Z · SATELLITE PASS</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint)" id="a1-time">—</span>
             </div>
-            <div class="alert-title">Harmful Algal Bloom — NDCI Threshold Breach</div>
-            <div class="alert-body">NDCI reading of 0.42 exceeds the 3σ alarm threshold (0.31) at Maumee Bay Outlet. Trajectory modeling shows plume migration towards Toledo Intake Crib within 48 hours under current wind conditions.</div>
-            <div class="alert-loc">📍 41.74°N, 83.39°W · Zone 01 · 1,200 m from Intake Alpha</div>
+            <div class="alert-title" id="a1-title">Harmful Algal Bloom — NDCI Threshold Breach</div>
+            <div class="alert-body" id="a1-body">Loading alert data...</div>
+            <div class="alert-loc" id="a1-loc">📍 Loading...</div>
           </div>
         </div>
 
@@ -698,11 +698,11 @@ footer { border-top: 1px solid var(--border-sub); padding: 40px; background: var
           <div class="alert-inner">
             <div class="alert-top">
               <span class="sev-badge sev-warn">● WARNING</span>
-              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint)">2024-10-24 10:15Z · SENTINEL-2A</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint)" id="a2-time">—</span>
             </div>
-            <div class="alert-title">Elevated Suspended Particulate Matter</div>
-            <div class="alert-body">SPM in Band B04 (665 nm) is 1.8σ above seasonal baseline across Central Basin. Pattern is consistent with post-precipitation runoff-driven sediment influx.</div>
-            <div class="alert-loc">📍 41.85°N, 83.14°W · Zone 02 · 5,400 m from Intake Bravo</div>
+            <div class="alert-title" id="a2-title">Elevated Suspended Particulate Matter</div>
+            <div class="alert-body" id="a2-body">Loading alert data...</div>
+            <div class="alert-loc" id="a2-loc">📍 Loading...</div>
           </div>
         </div>
 
@@ -710,11 +710,11 @@ footer { border-top: 1px solid var(--border-sub); padding: 40px; background: var
           <div class="alert-inner">
             <div class="alert-top">
               <span class="sev-badge sev-watch">● WATCH</span>
-              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint)">2024-10-23 08:00Z · SYSTEM</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint)" id="a3-time">—</span>
             </div>
-            <div class="alert-title">Chlorophyll-a 7-Day Upward Trend</div>
-            <div class="alert-body">Sandusky Bay NDCI has trended upward over 7 consecutive satellite passes. Currently at 1.2σ — approaching WATCH boundary. Continued satellite monitoring active.</div>
-            <div class="alert-loc">📍 41.47°N, 82.83°W · Zone 03 · 12 km from nearest intake</div>
+            <div class="alert-title" id="a3-title">Chlorophyll-a 7-Day Upward Trend</div>
+            <div class="alert-body" id="a3-body">Loading alert data...</div>
+            <div class="alert-loc" id="a3-loc">📍 Loading...</div>
           </div>
         </div>
       </div>
@@ -722,22 +722,22 @@ footer { border-top: 1px solid var(--border-sub); padding: 40px; background: var
       <div class="protocol-box reveal reveal-d2">
         <div class="protocol-title">Recommended Protocol</div>
         <div class="protocol-sub">Water utility advisory steps</div>
-        <div class="protocol-list">
+        <div class="protocol-list" id="protocol-list">
           <div class="protocol-step">
             <span class="p-num">01</span>
-            <span>Deploy field tech for physical sampling at 41.74°N / 83.39°W at 0.5m &amp; 2m depth.</span>
+            <span id="proto-1">Deploy field tech for physical sampling at primary zone inlet at 0.5m &amp; 2m depth.</span>
           </div>
           <div class="protocol-step">
             <span class="p-num">02</span>
-            <span>Pre-treat Toledo Intake Crib infrastructure with powdered activated carbon.</span>
+            <span id="proto-2">Pre-treat municipal intake infrastructure with powdered activated carbon.</span>
           </div>
           <div class="protocol-step">
             <span class="p-num">03</span>
-            <span>Cross-reference 24h wind vector forecast with hydrodynamic trajectory model.</span>
+            <span id="proto-3">Cross-reference 24h wind vector forecast with hydrodynamic trajectory model.</span>
           </div>
           <div class="protocol-step">
             <span class="p-num">04</span>
-            <span>Submit ground truth field reading to calibrate next satellite pass.</span>
+            <span id="proto-4">Submit ground truth field reading to calibrate next satellite pass.</span>
           </div>
         </div>
       </div>
@@ -747,7 +747,7 @@ footer { border-top: 1px solid var(--border-sub); padding: 40px; background: var
   <!-- ── 3. SITE RANKING ─────────────────────────────── -->
   <section id="ranking" class="reveal">
     <div class="section-head">
-      <div class="s-eyebrow">Priority Order · Geodesic Distance Weighted</div>
+      <div class="s-eyebrow" id="rank-eyebrow">Priority Order · Geodesic Distance Weighted</div>
       <h2 class="s-title">3. Site Ranking</h2>
     </div>
 
@@ -755,64 +755,64 @@ footer { border-top: 1px solid var(--border-sub); padding: 40px; background: var
       <div class="rank-card reveal reveal-d1">
         <div class="rank-num r1">#1</div>
         <div>
-          <div class="rank-name">Maumee Bay Outlet</div>
-          <div class="rank-dists">
-            <span>Intake: <strong>1,200 m</strong></span> · 
-            <span>Settlement: <strong>3,400 m</strong></span> · 
+          <div class="rank-name" id="r1-name">Primary Zone</div>
+          <div class="rank-dists" id="r1-dist">
+            <span>Intake: <strong>—</strong></span> · 
+            <span>Settlement: <strong>—</strong></span> · 
             <span>Zone 01</span>
           </div>
         </div>
         <div class="rank-score">
-          <div class="rank-score-val" style="color:var(--red)">8.4</div>
-          <div class="rank-score-lbl">/ 10.0 SEVERE</div>
+          <div class="rank-score-val" style="color:var(--red)" id="r1-val">—</div>
+          <div class="rank-score-lbl" id="r1-lbl">/ 10.0 SEVERE</div>
         </div>
       </div>
 
       <div class="rank-card reveal reveal-d2">
         <div class="rank-num r2">#2</div>
         <div>
-          <div class="rank-name">Central Basin Transition</div>
-          <div class="rank-dists">
-            <span>Intake: <strong>5,400 m</strong></span> · 
-            <span>Settlement: <strong>8,200 m</strong></span> · 
+          <div class="rank-name" id="r2-name">Secondary Zone</div>
+          <div class="rank-dists" id="r2-dist">
+            <span>Intake: <strong>—</strong></span> · 
+            <span>Settlement: <strong>—</strong></span> · 
             <span>Zone 02</span>
           </div>
         </div>
         <div class="rank-score">
-          <div class="rank-score-val" style="color:var(--yellow)">5.7</div>
-          <div class="rank-score-lbl">/ 10.0 WARNING</div>
+          <div class="rank-score-val" style="color:var(--yellow)" id="r2-val">—</div>
+          <div class="rank-score-lbl" id="r2-lbl">/ 10.0 WARNING</div>
         </div>
       </div>
 
       <div class="rank-card reveal reveal-d3">
         <div class="rank-num r3">#3</div>
         <div>
-          <div class="rank-name">Sandusky Bay</div>
-          <div class="rank-dists">
-            <span>Intake: <strong>12,000 m</strong></span> · 
-            <span>Settlement: <strong>5,100 m</strong></span> · 
+          <div class="rank-name" id="r3-name">Tertiary Zone</div>
+          <div class="rank-dists" id="r3-dist">
+            <span>Intake: <strong>—</strong></span> · 
+            <span>Settlement: <strong>—</strong></span> · 
             <span>Zone 03</span>
           </div>
         </div>
         <div class="rank-score">
-          <div class="rank-score-val" style="color:var(--green)">3.4</div>
-          <div class="rank-score-lbl">/ 10.0 WATCH</div>
+          <div class="rank-score-val" style="color:var(--green)" id="r3-val">—</div>
+          <div class="rank-score-lbl" id="r3-lbl">/ 10.0 WATCH</div>
         </div>
       </div>
 
       <div class="rank-card reveal reveal-d4">
         <div class="rank-num rn">#4</div>
         <div>
-          <div class="rank-name">Eastern Open Water</div>
-          <div class="rank-dists">
-            <span>Intake: <strong>38,000 m</strong></span> · 
-            <span>Settlement: <strong>22,000 m</strong></span> · 
+          <div class="rank-name" id="r4-name">Distal Zone</div>
+          <div class="rank-dists" id="r4-dist">
+            <span>Intake: <strong>—</strong></span> · 
+            <span>Settlement: <strong>—</strong></span> · 
             <span>Zone 04</span>
           </div>
         </div>
         <div class="rank-score">
-          <div class="rank-score-val" style="color:var(--blue)">1.2</div>
-          <div class="rank-score-lbl">/ 10.0 NOMINAL</div>
+          <div class="rank-score-val" style="color:var(--blue)" id="r4-val">—</div>
+          <div class="rank-score-lbl" id="r4-lbl">/ 10.0 NOMINAL</div>
         </div>
       </div>
     </div>
@@ -858,6 +858,164 @@ footer { border-top: 1px solid var(--border-sub); padding: 40px; background: var
 </footer>
 
 <script>
+/* ── DYNAMIC LAKE DATA — reads sessionStorage set by dashboard after Analyze ── */
+const LAKE_DATA = {
+  'Ambazari Lake': {
+    center: '21.1280°N, 79.0430°E',
+    zones: [
+      { name: 'Ambazari North Inlet',  id: 'ZONE-01 · North Shore · ~1.8 km²',   sev: 'SEVERE +3.1σ',  score: '8.1', col: 'var(--red)' },
+      { name: 'Ambazari East Basin',   id: 'ZONE-02 · East Arm · ~1.2 km²',      sev: 'WARNING +1.9σ', score: '5.4', col: 'var(--yellow)' },
+      { name: 'Ambazari Dam Zone',     id: 'ZONE-03 · Dam Side · ~0.8 km²',      sev: 'WATCH +1.1σ',   score: '3.1', col: 'var(--green)' },
+      { name: 'Ambazari South Fringe', id: 'ZONE-04 · South Margin · ~0.6 km²',  sev: 'NOMINAL',       score: '1.0', col: 'var(--blue)' },
+    ],
+    alerts: [
+      { time: 'TODAY · SATELLITE PASS', title: 'Harmful Algal Bloom — NDCI Threshold Breach',
+        body: 'NDCI reading of 0.42 exceeds the 3σ alarm threshold (0.31) at Ambazari North Inlet. Plume migration risk towards Ambazari Garden intake within 36 hours under current wind conditions.',
+        loc: '📍 21.1350°N, 79.0430°E · Zone 01 · ~800 m from Ambazari Garden intake' },
+      { time: 'TODAY · SENTINEL-2A', title: 'Elevated Turbidity — SPM Above Baseline',
+        body: 'SPM in Band B04 (665 nm) is 1.9σ above seasonal baseline across East Basin. Pattern is consistent with monsoon runoff-driven sediment influx from Nag River tributaries.',
+        loc: '📍 21.1280°N, 79.0520°E · Zone 02 · ~1.4 km from Ambazari dam' },
+      { time: 'YESTERDAY · SYSTEM', title: 'NDWI 7-Day Downward Trend — Water Extent Shrinking',
+        body: 'Ambazari Lake NDWI has declined over 5 consecutive passes. Currently at −1.1σ — approaching WATCH boundary. Evaporation and reduced inflow suspected.',
+        loc: '📍 21.1210°N, 79.0350°E · Zone 03 · 2.1 km from nearest municipal intake' },
+    ],
+    ranks: [
+      { name: 'Ambazari North Inlet',  intake: '800 m',   settle: '1,200 m',  zone: 'Zone 01', val: '8.1', lbl: '/ 10.0 SEVERE',  col: 'var(--red)' },
+      { name: 'Ambazari East Basin',   intake: '1,800 m', settle: '2,400 m',  zone: 'Zone 02', val: '5.4', lbl: '/ 10.0 WARNING', col: 'var(--yellow)' },
+      { name: 'Ambazari Dam Zone',     intake: '3,200 m', settle: '5,100 m',  zone: 'Zone 03', val: '3.1', lbl: '/ 10.0 WATCH',   col: 'var(--green)' },
+      { name: 'Ambazari South Fringe', intake: '5,600 m', settle: '9,000 m',  zone: 'Zone 04', val: '1.0', lbl: '/ 10.0 NOMINAL', col: 'var(--blue)' },
+    ],
+    protocols: [
+      'Deploy field tech for physical sampling at Ambazari North Inlet at 0.5m & 2m depth.',
+      'Pre-treat Nagpur Municipal Corporation intake infrastructure with powdered activated carbon.',
+      'Cross-reference 24h Vidarbha wind vector forecast with Nag River hydrodynamic model.',
+      'Submit ground truth field reading to calibrate next Sentinel-2 overpass.',
+    ]
+  },
+  'Futala Lake': {
+    center: '21.1540°N, 79.0417°E',
+    zones: [
+      { name: 'Futala North Embankment', id: 'ZONE-01 · North Shore · ~0.9 km²',  sev: 'WARNING +2.1σ', score: '6.2', col: 'var(--yellow)' },
+      { name: 'Futala Central Water',    id: 'ZONE-02 · Central · ~0.7 km²',      sev: 'WATCH +1.3σ',   score: '3.8', col: 'var(--green)' },
+      { name: 'Futala South Inlet',      id: 'ZONE-03 · South Inlet · ~0.4 km²',  sev: 'WATCH +0.9σ',   score: '2.7', col: 'var(--green)' },
+      { name: 'Futala Open Zone',        id: 'ZONE-04 · Open Water · ~0.5 km²',   sev: 'NOMINAL',       score: '1.1', col: 'var(--blue)' },
+    ],
+    alerts: [
+      { time: 'TODAY · SATELLITE PASS', title: 'NDCI Elevation — Algal Activity Detected',
+        body: 'NDCI reading of 0.28 at Futala North Embankment is 2.1σ above baseline. Recreational water body advisory recommended pending lab confirmation.',
+        loc: '📍 21.1600°N, 79.0417°E · Zone 01 · ~300 m from Futala promenade' },
+      { time: 'TODAY · SENTINEL-2A', title: 'Reduced Water Transparency — SDD Below Baseline',
+        body: 'Secchi disk depth equivalent has dropped to 0.6 m (baseline 1.4 m) across central water body. Likely linked to algal scum and light scattering.',
+        loc: '📍 21.1540°N, 79.0430°E · Zone 02 · ~200 m from recreational zone' },
+      { time: 'YESTERDAY · SYSTEM', title: 'Monsoon Runoff Influx — SPM Spike Observed',
+        body: 'Futala South Inlet shows elevated SPM consistent with stormwater inflow. NDWI remains stable but turbidity 1.3σ above baseline.',
+        loc: '📍 21.1480°N, 79.0420°E · Zone 03 · ~500 m from south bund' },
+    ],
+    ranks: [
+      { name: 'Futala North Embankment', intake: '300 m',   settle: '800 m',   zone: 'Zone 01', val: '6.2', lbl: '/ 10.0 WARNING', col: 'var(--yellow)' },
+      { name: 'Futala Central Water',    intake: '700 m',   settle: '1,100 m', zone: 'Zone 02', val: '3.8', lbl: '/ 10.0 WATCH',   col: 'var(--green)' },
+      { name: 'Futala South Inlet',      intake: '1,200 m', settle: '2,000 m', zone: 'Zone 03', val: '2.7', lbl: '/ 10.0 WATCH',   col: 'var(--green)' },
+      { name: 'Futala Open Zone',        intake: '1,900 m', settle: '3,200 m', zone: 'Zone 04', val: '1.1', lbl: '/ 10.0 NOMINAL', col: 'var(--blue)' },
+    ],
+    protocols: [
+      'Deploy field tech for physical sampling at Futala North Embankment at 0.3m & 1m depth.',
+      'Issue recreational water advisory for Futala promenade visitors pending lab results.',
+      'Cross-reference Nagpur wind forecast with Futala Lake hydrodynamic model.',
+      'Submit ground truth field reading to calibrate next Sentinel-2 overpass.',
+    ]
+  },
+  'Gorewada Lake': {
+    center: '21.1972°N, 79.0375°E',
+    zones: [
+      { name: 'Gorewada North Reservoir', id: 'ZONE-01 · North Basin · ~3.2 km²', sev: 'WATCH +1.4σ',   score: '4.1', col: 'var(--green)' },
+      { name: 'Gorewada Central Body',    id: 'ZONE-02 · Central · ~2.8 km²',     sev: 'WATCH +1.0σ',   score: '3.2', col: 'var(--green)' },
+      { name: 'Gorewada South Arm',       id: 'ZONE-03 · South Arm · ~1.6 km²',   sev: 'NOMINAL',       score: '2.0', col: 'var(--blue)' },
+      { name: 'Gorewada East Fringe',     id: 'ZONE-04 · East Fringe · ~1.1 km²', sev: 'NOMINAL',       score: '1.3', col: 'var(--blue)' },
+    ],
+    alerts: [
+      { time: 'TODAY · SATELLITE PASS', title: 'NDCI Watch — Moderate Chlorophyll-a Rise',
+        body: 'NDCI at Gorewada North Reservoir is at 1.4σ above seasonal baseline. Gorewada International Zoo proximity warrants precautionary monitoring. No immediate threat to municipal supply.',
+        loc: '📍 21.2065°N, 79.0375°E · Zone 01 · ~1.2 km from Gorewada Zoo boundary' },
+      { time: 'TODAY · SENTINEL-2A', title: 'SPM Moderate Elevation — Central Zone',
+        body: 'Suspended particulate matter in central body is 1.0σ above baseline. Consistent with seasonal monsoon inflow from surrounding forest catchment.',
+        loc: '📍 21.1972°N, 79.0380°E · Zone 02 · ~2.8 km from nearest intake' },
+      { time: 'YESTERDAY · SYSTEM', title: 'MNDWI Stable — No Extent Change Detected',
+        body: 'Gorewada Lake MNDWI has remained within 0.5σ over 6 consecutive passes. Water extent is stable. Routine monitoring active.',
+        loc: '📍 21.1880°N, 79.0400°E · Zone 03 · ~4.0 km from Zone 01' },
+    ],
+    ranks: [
+      { name: 'Gorewada North Reservoir', intake: '1,200 m', settle: '2,400 m',  zone: 'Zone 01', val: '4.1', lbl: '/ 10.0 WATCH',   col: 'var(--green)' },
+      { name: 'Gorewada Central Body',    intake: '2,800 m', settle: '4,100 m',  zone: 'Zone 02', val: '3.2', lbl: '/ 10.0 WATCH',   col: 'var(--green)' },
+      { name: 'Gorewada South Arm',       intake: '4,500 m', settle: '7,200 m',  zone: 'Zone 03', val: '2.0', lbl: '/ 10.0 NOMINAL', col: 'var(--blue)' },
+      { name: 'Gorewada East Fringe',     intake: '6,100 m', settle: '10,000 m', zone: 'Zone 04', val: '1.3', lbl: '/ 10.0 NOMINAL', col: 'var(--blue)' },
+    ],
+    protocols: [
+      'Deploy field tech for physical sampling at Gorewada North Reservoir at 0.5m & 2m depth.',
+      'Notify Gorewada International Zoo management of elevated NDCI status for precautionary measures.',
+      'Cross-reference Nagpur wind forecast with Gorewada catchment hydrodynamic model.',
+      'Submit ground truth field reading to calibrate next Sentinel-2 overpass.',
+    ]
+  }
+};
+
+function populatePage() {
+  const wb = sessionStorage.getItem('water_body') || 'Ambazari Lake';
+  const aid = sessionStorage.getItem('analysis_id') || '—';
+  const d = LAKE_DATA[wb] || LAKE_DATA['Ambazari Lake'];
+  const today = new Date().toISOString().split('T')[0];
+
+  // Page header
+  document.getElementById('pg-eyebrow').textContent = `Sequence Step 2 · ${wb} Workspace`;
+  document.getElementById('pg-sub').textContent =
+    `Zonal anomaly evidence, live emergency alert feeds, and priority site rankings for ${wb} — Analysis ID: ${aid}.`;
+
+  // Section eyebrows
+  document.getElementById('anomaly-eyebrow').textContent = `Zonal Analysis · ${wb} · 4 Sectors`;
+  document.getElementById('alert-eyebrow').textContent = `Real-Time Advisories · ${wb}`;
+  document.getElementById('rank-eyebrow').textContent = `Priority Order · ${wb} · Geodesic Distance Weighted`;
+
+  // Zones
+  const zIds = [['z1','r1','red'],['z2','r2','yellow'],['z3','r3','green'],['z4','r4','blue']];
+  d.zones.forEach((z, i) => {
+    const [zp] = zIds[i];
+    document.getElementById(`${zp}-name`).textContent = z.name;
+    document.getElementById(`${zp}-id`).textContent   = z.id;
+    document.getElementById(`${zp}-sev`).textContent  = z.sev;
+    document.getElementById(`${zp}-score`).textContent = z.score;
+    document.getElementById(`${zp}-score`).style.color = z.col;
+  });
+
+  // Alerts
+  const aNums = ['a1','a2','a3'];
+  d.alerts.forEach((a, i) => {
+    const p = aNums[i];
+    document.getElementById(`${p}-time`).textContent  = `${today} · ${a.time.split('·')[1]?.trim() || 'SYSTEM'}`;
+    document.getElementById(`${p}-title`).textContent = a.title;
+    document.getElementById(`${p}-body`).textContent  = a.body;
+    document.getElementById(`${p}-loc`).textContent   = a.loc;
+  });
+
+  // Ranking
+  d.ranks.forEach((r, i) => {
+    const n = i + 1;
+    const rp = n < 4 ? `r${n}` : 'r4';
+    document.getElementById(`${rp}-name`).textContent = r.name;
+    document.getElementById(`${rp}-dist`).innerHTML   =
+      `<span>Intake: <strong>${r.intake}</strong></span> · <span>Settlement: <strong>${r.settle}</strong></span> · <span>${r.zone}</span>`;
+    document.getElementById(`${rp}-val`).textContent  = r.val;
+    document.getElementById(`${rp}-val`).style.color  = r.col;
+    document.getElementById(`${rp}-lbl`).textContent  = r.lbl;
+  });
+
+  // Protocols
+  d.protocols.forEach((p, i) => {
+    const el = document.getElementById(`proto-${i+1}`);
+    if (el) el.textContent = p;
+  });
+}
+
+populatePage();
+</script>
 /* ── SCROLL REVEAL OBSERVER (GitHub Spring) ───── */
 const revealObs = new IntersectionObserver((entries) => {
   entries.forEach(e => {

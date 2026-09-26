@@ -81,6 +81,26 @@ def get_history(water_body: str) -> List[Dict[str, Any]]:
         })
     return history
 
+def get_analysis(analysis_id: str) -> Dict[str, Any]:
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT analysis_id, water_body, date, ndwi, ndti, ndci, anomaly_status, anomaly_score, priority_score
+        FROM history WHERE analysis_id = ?
+    """, (analysis_id,))
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        return None
+    return {
+        "analysis_id": row[0],
+        "water_body": row[1],
+        "date": row[2],
+        "indicators": {"ndwi": row[3], "ndti": row[4], "ndci": row[5]},
+        "anomaly": {"status": row[6], "score": row[7]},
+        "priority": {"score": row[8]}
+    }
+
 def get_baseline(water_body: str, limit: int = 5) -> Dict[str, float]:
     """Calculate mean and std dev of historical data to establish a baseline."""
     history = get_history(water_body)
