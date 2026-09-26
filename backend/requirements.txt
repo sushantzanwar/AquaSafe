@@ -1,0 +1,12 @@
+fastapi[standard]
+uvicorn
+numpy
+pandas
+rasterio
+shapely
+geopandas
+torch
+torchvision
+transformers
+huggingface_hub
+pydantic
