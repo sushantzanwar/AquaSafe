@@ -1,0 +1,99 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AquaWatch Analysis Output",
+  "description": "The standardized JSON contract outputted by the Backend and consumed by the Frontend and AI Assistant.",
+  "type": "object",
+  "properties": {
+    "analysis_id": {
+      "type": "string",
+      "description": "Unique identifier for this specific analysis run."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the analysis was completed."
+    },
+    "location": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "coordinates": {
+          "type": "array",
+          "items": { "type": "number" },
+          "description": "[longitude, latitude]"
+        }
+      },
+      "required": ["name", "coordinates"]
+    },
+    "satellite_data": {
+      "type": "object",
+      "properties": {
+        "source": { "type": "string", "default": "Sentinel-2" },
+        "scene_date": { "type": "string", "format": "date" },
+        "cloud_cover_percentage": { "type": "number" }
+      },
+      "required": ["source", "scene_date"]
+    },
+    "water_detection": {
+      "type": "object",
+      "description": "Results from the first pre-trained model (Water Body Detection).",
+      "properties": {
+        "model_used": { "type": "string", "default": "giswqs/s2-water-unetplusplus-efficientnet-b4" },
+        "water_surface_area_sq_km": { "type": "number" },
+        "mask_geojson_url": { "type": "string", "description": "URL or path to the generated water boundary GeoJSON." }
+      },
+      "required": ["model_used", "water_surface_area_sq_km"]
+    },
+    "contamination_detection": {
+      "type": "object",
+      "description": "Results from the second pre-trained model (Contamination/Anomaly Detection).",
+      "properties": {
+        "model_used": { "type": "string" },
+        "indicators": {
+          "type": "object",
+          "properties": {
+            "ndwi": { "type": "number" },
+            "ndti": { "type": "number" },
+            "ndci": { "type": "number" },
+            "turbidity": { "type": "number" }
+          }
+        },
+        "anomaly_status": {
+          "type": "string",
+          "enum": ["NORMAL", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
+        },
+        "confidence_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "detected_contaminants": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["model_used", "indicators", "anomaly_status", "confidence_score"]
+    },
+    "investigation_priority": {
+      "type": "object",
+      "properties": {
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "recommendation": { "type": "string" }
+      },
+      "required": ["score"]
+    }
+  },
+  "required": [
+    "analysis_id",
+    "timestamp",
+    "location",
+    "satellite_data",
+    "water_detection",
+    "contamination_detection",
+    "investigation_priority"
+  ]
+}
