@@ -32,3 +32,11 @@ data/cache/**
 models/**
 !models/README.md
 !models/.gitkeep
+
+# ChromaDB vector store (large binary, regenerated via scripts)
+ai_assistant/rag/chroma_db/
+
+# Scratch / test files
+test2.py
+test3.py
+test_api.py

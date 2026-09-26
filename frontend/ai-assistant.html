@@ -238,10 +238,11 @@ a { text-decoration: none; color: inherit; }
   position: relative;
   flex-shrink: 0;
   box-shadow: 0 0 20px rgba(63,185,80,0.2);
+  overflow: hidden;
 }
 .bot-icon-svg {
-  width: 36px; height: 36px;
-  color: var(--green);
+  width: 100%; height: 100%;
+  object-fit: cover;
 }
 .bot-status-badge {
   display: flex;
@@ -486,13 +487,7 @@ footer { border-top: 1px solid var(--border-sub); padding: 40px; background: var
     <!-- STATIC BOT GRAPHIC / AVATAR CARD -->
     <div class="bot-avatar-card reveal">
       <div class="bot-icon-wrap">
-        <svg class="bot-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="11" width="18" height="10" rx="2"></rect>
-          <circle cx="12" cy="5" r="2"></circle>
-          <path d="M12 7v4"></path>
-          <line x1="8" y1="16" x2="8.01" y2="16"></line>
-          <line x1="16" y1="16" x2="16.01" y2="16"></line>
-        </svg>
+        <img src="images/rag_ai_avatar.jpg" alt="AI Avatar" class="bot-icon-svg" />
       </div>
       <div class="bot-status-badge">
         <div class="bs-name">AquaWatch AI Bot</div>
@@ -541,14 +536,7 @@ footer { border-top: 1px solid var(--border-sub); padding: 40px; background: var
     </div>
 
     <div class="chat-history" id="chat-history">
-      <div class="msg ai">
-        <div class="bubble" id="welcome-bubble">
-          👋 <strong>Welcome to AquaRadar RAG Hydrology Assistant!</strong><br><br>
-          I am connected directly to Google Gemini and an indexed peer-reviewed scientific literature corpus (ChromaDB vector store). I have access to multispectral optical indicators (NDCI, NDTI, MNDWI), baseline z-score deviation models, and WHO/EPA water safety guidelines.<br><br>
-          Ask any question about water anomalies, satellite band physics, or public safety guidance below.
-        </div>
-        <div class="cite-card" id="welcome-cite">📄 System Ready · Connected to AquaWatch RAG Core (Gemini + ChromaDB)</div>
-      </div>
+      <!-- Chat history cleared for a clean slate -->
     </div>
 
     <div class="chat-input-bar">
@@ -599,12 +587,7 @@ const heroEyebrow = document.querySelector('.bot-eyebrow');
 if (heroEyebrow) {
   heroEyebrow.textContent = `RAG Hydrology Assistant · Active Context: ${activeLakeName}`;
 }
-const welcomeBubble = document.getElementById('welcome-bubble');
-if (welcomeBubble && activeLakeName) {
-  welcomeBubble.innerHTML = `👋 <strong>Welcome to AquaRadar RAG Hydrology Assistant!</strong><br><br>
-    I am connected live to <strong>Google Gemini</strong> and indexed peer-reviewed scientific literature (ChromaDB vector store). Currently analyzing telemetry for <strong>${activeLakeName}</strong>.<br><br>
-    Ask any question about satellite spectral indices (NDCI, NDTI, MNDWI), anomaly scores, baseline deviations, or public health &amp; swimming safety guidance.`;
-}
+// Chat history is intentionally left clean per user request.
 
 // Dynamically fetch contextual suggested questions from Gemini
 async function loadDynamicSuggestedQuestions() {

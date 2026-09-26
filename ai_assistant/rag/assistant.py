@@ -26,11 +26,12 @@ GUIDELINES:
 6. Always return fresh, insightful, context-aware responses."""
 
 AVAILABLE_MODELS = [
-    "gemini-2.5-flash-lite",
+    "gemini-3.8-flash",
+    "gemini-3.5-flash",
+    "gemini-3.1-flash-lite",
     "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-1.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-flash-latest",
 ]
 
 
@@ -68,7 +69,7 @@ def _call_gemini_rest(model_name: str, prompt_text: str, api_key: str, timeout: 
 
 def _invoke_with_model_fallback(formatted_prompt_args: dict) -> str:
     """Attempts invocation with primary fast Gemini model, falling back gracefully."""
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    api_key = os.getenv("GEMINI_API_KEY", os.getenv("LLM_API_KEY", "")).strip().strip('"').strip("'")
 
     live_data = formatted_prompt_args.get("live_data", "{}")
     context = formatted_prompt_args.get("context", "")
@@ -85,14 +86,15 @@ def _invoke_with_model_fallback(formatted_prompt_args: dict) -> str:
         f"DETAILED ANSWER:"
     )
 
+    last_error = "Unknown error"
     if api_key:
         for model_name in AVAILABLE_MODELS:
             try:
                 res = _call_gemini_rest(model_name, full_prompt, api_key, timeout=12)
                 if res and res.strip():
                     return res.strip()
-            except Exception:
-                # Try next model on error / quota
+            except Exception as e:
+                last_error = f"{model_name} failed: {str(e)}"
                 continue
 
     # Grounded fallback if network or all models unavailable
@@ -117,11 +119,10 @@ def _invoke_with_model_fallback(formatted_prompt_args: dict) -> str:
         )
 
     return (
-        f"### 🌊 AquaWatch Hydrological Synthesis: {wb_name}\n\n"
+        f"### ⚠️ AI Service Temporarily Unavailable\n\n"
         f"**Telemetry & Scientific Assessment for:** *\"{question}\"*\n\n"
-        f"- **Multispectral State:** Monitored Sentinel-2 telemetry indicates active optical variations across the water body surface.\n"
-        f"- **Scientific Baseline:** {context if context else 'Chlorophyll-a (NDCI) and suspended particulate matter (NDTI) are tracked against historical sigma baselines to detect eutrophic anomalies early.'}\n"
-        f"- **Recommended Action:** Continuous monitoring via Sentinel-2 MSI overpasses and ground-truth validation at designated monitoring points."
+        f"- **Error Details:** Failed to connect to Gemini API. Error: {last_error}\n"
+        f"- **API Key Used:** {api_key[:5]}... (Length: {len(api_key)})"
     )
 
 
@@ -167,7 +168,7 @@ def generate_dynamic_questions(analysis_data: dict) -> list:
     ind = analysis_data.get('indicators', {})
     anom = analysis_data.get('anomaly', {})
 
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    api_key = os.getenv("GEMINI_API_KEY", os.getenv("LLM_API_KEY", "")).strip().strip('"').strip("'")
     if api_key:
         q_prompt = (
             f"Given the following live water quality telemetry for {wb}:\n"
