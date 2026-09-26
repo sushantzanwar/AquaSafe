@@ -62,27 +62,34 @@ def generate_explanation(live_json_data: dict, scientific_context: str, user_que
 
 # For testing locally if you run this script directly:
 if __name__ == "__main__":
-    # Example live data (this would come from our mock server)
-    dummy_live_data = {
-        "water_body": "Ambazari Lake",
-        "contamination_detection": {
-            "indicators": {"ndci": 0.18, "turbidity": 45.5},
-            "anomaly_status": "HIGH",
-            "detected_contaminants": ["Algal Bloom"]
+    if not os.getenv("GEMINI_API_KEY"):
+        print("ERROR: GEMINI_API_KEY environment variable is not set. Please set it in your .env file.")
+    else:
+        # Example live data (this would come from our mock server in production)
+        dummy_live_data = {
+            "water_body": "Ambazari Lake",
+            "contamination_detection": {
+                "indicators": {"ndci": 0.18, "turbidity": 45.5},
+                "anomaly_status": "HIGH",
+                "detected_contaminants": ["Algal Bloom"]
+            }
         }
-    }
-    
-    # Example scientific context (this would come from ChromaDB/Vector Store later)
-    dummy_context = "NDCI (Normalized Difference Chlorophyll Index) values above 0.1 generally indicate severe algal blooms. High turbidity combined with high NDCI often means the water is unsafe for consumption."
-    
-    question = "Why was Ambazari Lake flagged as a high anomaly?"
-    
-    print("Testing Gemini RAG Pipeline (requires GEMINI_API_KEY)...\n")
-    try:
-        if not os.getenv("GEMINI_API_KEY"):
-            print("ERROR: GEMINI_API_KEY environment variable is not set. Please set it to run the test.")
-        else:
-            answer = generate_explanation(dummy_live_data, dummy_context, question)
-            print(answer)
-    except Exception as e:
-        print(f"Error connecting to Gemini: {e}")
+        
+        # Example scientific context (this would come from ChromaDB/Vector Store later)
+        dummy_context = "NDCI (Normalized Difference Chlorophyll Index) values above 0.1 generally indicate severe algal blooms. High turbidity combined with high NDCI often means the water is unsafe for consumption."
+        
+        print("\n--- AquaWatch RAG Assistant (Terminal Chat) ---")
+        print("Type 'exit' or 'quit' to stop.\n")
+        
+        while True:
+            question = input("You: ")
+            if question.lower() in ['exit', 'quit']:
+                print("Goodbye!")
+                break
+                
+            print("\nAquaWatch is thinking...")
+            try:
+                answer = generate_explanation(dummy_live_data, dummy_context, question)
+                print(f"AquaWatch: {answer}\n")
+            except Exception as e:
+                print(f"Error connecting to Gemini: {e}\n")
