@@ -10,7 +10,7 @@ load_dotenv()
 # Import our RAG logic
 # Adjusting sys.path to allow importing from the sibling 'rag' directory
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from rag.assistant import generate_explanation
+from rag.assistant import generate_explanation_with_sources
 
 app = FastAPI(title="AquaWatch AI Assistant API")
 
@@ -24,6 +24,7 @@ class AskResponse(BaseModel):
     analysis_id: str
     question: str
     explanation: str
+    sources: list = []
 
 @app.post("/api/assistant/ask", response_model=AskResponse)
 async def ask_assistant(request: AskRequest):
@@ -38,22 +39,19 @@ async def ask_assistant(request: AskRequest):
         )
 
     try:
-        # TODO: In a fully complete RAG system, we would take the user_question
-        # and query ChromaDB here to get the 'scientific_context'. 
-        # For now, we'll use a placeholder until documents are ingested.
-        scientific_context = "Placeholder context: NDCI measures chlorophyll. High values indicate algal blooms."
-
-        # Generate the explanation using our Gemini RAG pipeline
-        explanation = generate_explanation(
+        # generate_explanation_with_sources automatically queries ChromaDB
+        # for relevant scientific context and returns citation metadata.
+        explanation, sources = generate_explanation_with_sources(
             live_json_data=request.live_data,
-            scientific_context=scientific_context,
+            scientific_context="",
             user_question=request.user_question
         )
 
         return AskResponse(
             analysis_id=request.analysis_id,
             question=request.user_question,
-            explanation=explanation
+            explanation=explanation,
+            sources=sources
         )
 
     except Exception as e:

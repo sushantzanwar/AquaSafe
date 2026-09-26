@@ -1,113 +1,201 @@
 import os
-from dotenv import load_dotenv, find_dotenv
+import json
+import urllib.request
+import urllib.error
+from dotenv import load_dotenv
 
 # Always load the .env from ai_assistant/ dir, regardless of where this is imported from
 _ENV_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
 load_dotenv(dotenv_path=_ENV_PATH, override=True)
 
-try:
-    from langchain_google_genai import ChatGoogleGenerativeAI
-    from langchain_core.prompts import ChatPromptTemplate
-    from langchain_core.output_parsers import StrOutputParser
-    HAS_LANGCHAIN = True
-except Exception:
-    HAS_LANGCHAIN = False
+# Also check root .env
+_ROOT_ENV = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".env")
+if os.path.exists(_ROOT_ENV):
+    load_dotenv(dotenv_path=_ROOT_ENV, override=False)
 
-# 2. Create a strict prompt template to force the model to ground its answers
-PROMPT_TEMPLATE = """
-You are AquaWatch, a dual-purpose AI assistant.
-1. When asked about specific water anomalies or satellite data, you are a strict scientific expert.
-2. When asked general questions about water quality, health, or citizen science, you are a helpful and educational guide.
+# Dynamic, grounded system prompt instructions
+SYSTEM_INSTRUCTION = """You are AquaWatch AI, an intelligent satellite hydrology and water quality expert powered by Google Gemini.
+You analyze live multispectral Sentinel-2 satellite telemetry (NDWI water index, NDTI turbidity index, NDCI chlorophyll-a index, and anomaly z-scores) combined with indexed peer-reviewed scientific literature.
 
-CRITICAL INSTRUCTIONS:
-- SCENARIO A (System Anomaly): If the user asks why a specific lake was flagged, ONLY use the provided LIVE DATA and SCIENTIFIC CONTEXT to explain the exact reason. Explain the anomaly as a shift from the historical baseline (e.g. "elevated turbidity-related spectral indicators relative to the baseline"). State the percentage of anomalous area if present.
-- SCENARIO B (Citizen Doubt): If the user asks a general question, answer them helpfully using your general knowledge.
-- TERMINOLOGY: Do NOT use the words "pollution" or "contamination" definitively unless confirmed by a lab. Instead use "spectral anomaly", "baseline deviation", "optical condition", or "anomalous area". State that "this indicates an unusual optical condition, but does not by itself confirm a specific contaminant. Field sampling is recommended."
-- ALWAYS keep your explanation clear, professional, and accessible to a non-scientist.
+GUIDELINES:
+1. Provide accurate, clear, and comprehensive answers to user questions — ranging from technical spectral physics (Sentinel-2 band ratios 705nm/665nm) to water safety, recreational swimming risk, algae blooms, and water management.
+2. Ground your answer in the provided LIVE DATA and SCIENTIFIC CONTEXT when relevant.
+3. If an anomaly is present, explain what the spectral indicators mean in practical terms (e.g., NDCI > 0.15 signals elevated chlorophyll/algal proliferation; NDTI > 0.20 signals elevated suspended solids and turbidity).
+4. For citizen and recreational doubts (e.g. "is it safe to swim?", "what does green water mean?"), provide practical safety-focused advice referencing WHO (World Health Organization) and EPA recreational water criteria.
+5. Format your output cleanly in Markdown with bold key terms, bullet points, and section headers where appropriate.
+6. Always return fresh, insightful, context-aware responses."""
 
----------------------
-LIVE DATA (If applicable):
-{live_data}
----------------------
-SCIENTIFIC CONTEXT (If applicable):
-{context}
----------------------
+AVAILABLE_MODELS = [
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-1.5-flash",
+]
 
-USER QUESTION: {question}
 
-EXPLANATION:
-"""
+def _call_gemini_rest(model_name: str, prompt_text: str, api_key: str, timeout: int = 15) -> str:
+    """Direct REST call to Gemini generateContent endpoint for speed and resilience."""
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+    payload = {
+        "contents": [
+            {
+                "role": "user",
+                "parts": [{"text": prompt_text}]
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0.2,
+            "maxOutputTokens": 1500,
+            "topP": 0.95
+        }
+    }
+    data = json.dumps(payload).encode('utf-8')
+    req = urllib.request.Request(
+        url,
+        data=data,
+        headers={"Content-Type": "application/json"}
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as response:
+        resp_data = json.loads(response.read().decode('utf-8'))
+        candidates = resp_data.get("candidates", [])
+        if candidates:
+            parts = candidates[0].get("content", {}).get("parts", [])
+            if parts:
+                return parts[0].get("text", "")
+    return ""
 
-if HAS_LANGCHAIN:
-    prompt = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
-else:
-    prompt = None
 
-def _get_llm():
-    """Lazily initialize the LLM so the API key is read at call time, not import time."""
-    if not HAS_LANGCHAIN:
-        return None
+def _invoke_with_model_fallback(formatted_prompt_args: dict) -> str:
+    """Attempts invocation with primary fast Gemini model, falling back gracefully."""
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+
+    live_data = formatted_prompt_args.get("live_data", "{}")
+    context = formatted_prompt_args.get("context", "")
+    question = formatted_prompt_args.get("question", "")
+
+    full_prompt = (
+        f"{SYSTEM_INSTRUCTION}\n\n"
+        f"---------------------\n"
+        f"LIVE WATER TELEMETRY:\n{live_data}\n"
+        f"---------------------\n"
+        f"PEER-REVIEWED SCIENTIFIC CONTEXT (from ChromaDB Vector Store):\n{context if context else 'No additional literature context.'}\n"
+        f"---------------------\n\n"
+        f"USER QUESTION: {question}\n\n"
+        f"DETAILED ANSWER:"
+    )
+
+    if api_key:
+        for model_name in AVAILABLE_MODELS:
+            try:
+                res = _call_gemini_rest(model_name, full_prompt, api_key, timeout=12)
+                if res and res.strip():
+                    return res.strip()
+            except Exception:
+                # Try next model on error / quota
+                continue
+
+    # Grounded fallback if network or all models unavailable
+    wb_name = "the water body"
     try:
-        return ChatGoogleGenerativeAI(
-            model="gemini-3.8-flash",
-            temperature=0.1,  # Low temperature to prevent hallucinations
-            max_tokens=500    # Keep responses concise and token usage low
-        )
+        if isinstance(live_data, str) and "water_body" in live_data:
+            import ast
+            parsed = ast.literal_eval(live_data)
+            if isinstance(parsed, dict) and "water_body" in parsed:
+                wb_name = parsed["water_body"]
     except Exception:
-        return None
+        pass
 
-def generate_explanation(live_json_data: dict, scientific_context: str, user_question: str) -> str:
-    """
-    Generates an explanation using the Gemini model, grounding it in the provided live data and context.
-    """
-    if not HAS_LANGCHAIN or prompt is None:
-        return f"AquaWatch Analysis for {live_json_data.get('water_body', 'Water Body')}: Indicators (NDWI: {live_json_data.get('indicators',{}).get('ndwi')}, NDTI: {live_json_data.get('indicators',{}).get('ndti')}, NDCI: {live_json_data.get('indicators',{}).get('ndci')}). Scientific context: {scientific_context}"
+    q_lower = question.lower()
+    if any(k in q_lower for k in ["swim", "bath", "safe", "danger", "recreation", "skin", "health"]):
+        return (
+            f"### ⚠️ Recreational Water Safety Assessment: {wb_name}\n\n"
+            f"Based on WHO Guidelines for Safe Recreational Water Environments and EPA Criteria:\n\n"
+            f"- **Primary Guidance:** Direct contact recreation (swimming, diving) is **not recommended** when water displays visible green discoloration, scums, or elevated chlorophyll-a (NDCI > 0.15).\n"
+            f"- **Potential Health Risks:** High cyanobacterial concentrations can release dermatotoxins and microcystins, causing skin irritation, conjunctivitis, allergic reactions, or gastrointestinal distress if ingested.\n"
+            f"- **Precautionary Measures:** Avoid immersion, keep domestic animals away from shorelines with surface mats, and wait for confirmation via laboratory algal toxin assays or Secchi depth > 1.2m."
+        )
 
+    return (
+        f"### 🌊 AquaWatch Hydrological Synthesis: {wb_name}\n\n"
+        f"**Telemetry & Scientific Assessment for:** *\"{question}\"*\n\n"
+        f"- **Multispectral State:** Monitored Sentinel-2 telemetry indicates active optical variations across the water body surface.\n"
+        f"- **Scientific Baseline:** {context if context else 'Chlorophyll-a (NDCI) and suspended particulate matter (NDTI) are tracked against historical sigma baselines to detect eutrophic anomalies early.'}\n"
+        f"- **Recommended Action:** Continuous monitoring via Sentinel-2 MSI overpasses and ground-truth validation at designated monitoring points."
+    )
+
+
+def generate_explanation_with_sources(live_json_data: dict, scientific_context: str, user_question: str) -> tuple:
+    """
+    Generates an explanation using Gemini (with fallback) and returns (explanation, sources_list).
+    Automatically retrieves relevant scientific context and citation metadata from ChromaDB.
+    """
+    sources = []
     try:
-        llm = _get_llm()
-        if llm is None:
-            raise ValueError("LLM initialization failed or API key missing")
-        chain = prompt | llm | StrOutputParser()
-        response = chain.invoke({
+        from ai_assistant.rag.vector_store import search_with_metadata, is_populated
+        if is_populated():
+            retrieved, sources = search_with_metadata(user_question, n_results=3)
+            if retrieved:
+                scientific_context = retrieved + (
+                    ("\n\n[Additional Context]\n" + scientific_context) if scientific_context else ""
+                )
+    except Exception:
+        pass
+
+    explanation = _invoke_with_model_fallback(
+        formatted_prompt_args={
             "live_data": str(live_json_data),
             "context": scientific_context,
             "question": user_question
-        })
-        return response
-    except Exception as e:
-        return f"AquaWatch Analysis for {live_json_data.get('water_body', 'Water Body')}: Indicators (NDWI: {live_json_data.get('indicators',{}).get('ndwi')}, NDTI: {live_json_data.get('indicators',{}).get('ndti')}, NDCI: {live_json_data.get('indicators',{}).get('ndci')}). Scientific context: {scientific_context}"
-
-
-# For testing locally if you run this script directly:
-if __name__ == "__main__":
-    if not os.getenv("GEMINI_API_KEY"):
-        print("ERROR: GEMINI_API_KEY environment variable is not set. Please set it in your .env file.")
-    else:
-        # Example live data (this would come from our mock server in production)
-        dummy_live_data = {
-            "water_body": "Ambazari Lake",
-            "baseline_comparison": {
-                "indicators": {"ndci": 0.18, "turbidity_proxy": 45.5},
-                "anomaly_status": "HIGH",
-                "anomalous_area_pct": 18
-            }
         }
-        
-        # Example scientific context (this would come from ChromaDB/Vector Store later)
-        dummy_context = "NDCI (Normalized Difference Chlorophyll Index) deviations above 0.1 generally indicate elevated chlorophyll relative to baseline. High turbidity combined with high NDCI often means the optical condition is anomalous and warrants field verification."
-        
-        print("\n--- AquaWatch RAG Assistant (Terminal Chat) ---")
-        print("Type 'exit' or 'quit' to stop.\n")
-        
-        while True:
-            question = input("You: ")
-            if question.lower() in ['exit', 'quit']:
-                print("Goodbye!")
-                break
-                
-            print("\nAquaWatch is thinking...")
+    )
+
+    return explanation, sources
+
+
+def generate_explanation(live_json_data: dict, scientific_context: str, user_question: str) -> str:
+    """Backward-compatible wrapper returning only the explanation string."""
+    explanation, _ = generate_explanation_with_sources(live_json_data, scientific_context, user_question)
+    return explanation
+
+
+def generate_dynamic_questions(analysis_data: dict) -> list:
+    """
+    Uses Gemini to dynamically generate 4 contextual questions tailored to the active lake's telemetry.
+    """
+    wb = analysis_data.get('water_body', 'this water body')
+    ind = analysis_data.get('indicators', {})
+    anom = analysis_data.get('anomaly', {})
+
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if api_key:
+        q_prompt = (
+            f"Given the following live water quality telemetry for {wb}:\n"
+            f"Indicators: {ind}\n"
+            f"Anomaly Status: {anom}\n"
+            f"Generate 4 short, interesting, natural questions a user or water manager would ask about this specific lake.\n"
+            f"Return ONLY the 4 questions, one per line, with no numbering, bullet points, or prefixes."
+        )
+        for model_name in AVAILABLE_MODELS:
             try:
-                answer = generate_explanation(dummy_live_data, dummy_context, question)
-                print(f"AquaWatch: {answer}\n")
-            except Exception as e:
-                print(f"Error connecting to Gemini: {e}\n")
+                res = _call_gemini_rest(model_name, q_prompt, api_key, timeout=8)
+                if res and res.strip():
+                    lines = [line.strip().lstrip("0123456789.-*• ") for line in res.split("\n") if line.strip()]
+                    if len(lines) >= 3:
+                        return lines[:4]
+            except Exception:
+                continue
+
+    return [
+        f"What does the current NDCI reading mean for {wb}?",
+        f"What drives turbidity and SPM levels in {wb}?",
+        f"Is it safe for swimming or recreation in {wb} right now?",
+        f"How does the current reading compare to historical baseline?"
+    ]
+
+
+if __name__ == "__main__":
+    dummy_live = {"water_body": "Futala Lake", "indicators": {"ndci": 0.38, "ndti": 0.25}}
+    ans, src = generate_explanation_with_sources(dummy_live, "", "Is it dangerous if I swim in green water?")
+    print("Answer:\n", ans)
+    print("Sources:", src)

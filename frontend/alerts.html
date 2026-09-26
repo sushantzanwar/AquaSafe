@@ -626,6 +626,13 @@ const revealObs = new IntersectionObserver((entries) => {
 }, { threshold: 0.08 });
 document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
 
+/* ── DYNAMIC LAKE ADVISORIES ──────────────────── */
+const activeLakeName = sessionStorage.getItem('water_body') || 'Ambazari Lake';
+const eyebrow = document.querySelector('.ph-eyebrow');
+if (eyebrow) {
+  eyebrow.textContent = `Real-Time Satellite Advisories · ${activeLakeName}`;
+}
+
 /* ── ALERT FILTER ─────────────────────────────── */
 function filterAlerts(type, btn) {
   document.querySelectorAll('.filter-btn').forEach(b => {
