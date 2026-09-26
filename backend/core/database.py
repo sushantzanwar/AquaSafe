@@ -57,13 +57,20 @@ def save_analysis(analysis_data: Dict[str, Any]):
     conn.commit()
     conn.close()
 
-def get_history(water_body: str) -> List[Dict[str, Any]]:
+def get_history(water_body: str = None, limit: int = None) -> List[Dict[str, Any]]:
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("""
-        SELECT analysis_id, date, ndwi, ndti, ndci, anomaly_status, anomaly_score, priority_score
-        FROM history WHERE water_body = ? ORDER BY date ASC
-    """, (water_body,))
+    lim_clause = f" LIMIT {int(limit)}" if limit else ""
+    if water_body:
+        cursor.execute(f"""
+            SELECT analysis_id, date, ndwi, ndti, ndci, anomaly_status, anomaly_score, priority_score, water_body
+            FROM history WHERE water_body = ? ORDER BY date DESC{lim_clause}
+        """, (water_body,))
+    else:
+        cursor.execute(f"""
+            SELECT analysis_id, date, ndwi, ndti, ndci, anomaly_status, anomaly_score, priority_score, water_body
+            FROM history ORDER BY date DESC{lim_clause}
+        """)
     rows = cursor.fetchall()
     conn.close()
     
@@ -77,9 +84,11 @@ def get_history(water_body: str) -> List[Dict[str, Any]]:
             "ndci": row[4],
             "anomaly_status": row[5],
             "anomaly_score": row[6],
-            "priority_score": row[7]
+            "priority_score": row[7],
+            "water_body": row[8] if len(row) > 8 else (water_body or "Ambazari Lake")
         })
     return history
+
 
 def get_analysis(analysis_id: str) -> Dict[str, Any]:
     conn = sqlite3.connect(DB_PATH)

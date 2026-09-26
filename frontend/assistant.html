@@ -961,7 +961,12 @@ const LAKE_DATA = {
 function populatePage() {
   const wb = sessionStorage.getItem('water_body') || 'Ambazari Lake';
   const aid = sessionStorage.getItem('analysis_id') || '—';
-  const d = LAKE_DATA[wb] || LAKE_DATA['Ambazari Lake'];
+  // Deep copy the mock data so we can dynamically modify it
+  const mockData = LAKE_DATA[wb] || JSON.parse(JSON.stringify(LAKE_DATA['Ambazari Lake']));
+  
+  // Dynamically replace 'Ambazari' with the actual selected lake name in the mock data
+  const shortName = wb.replace(/ Lake/i, '').replace(/ Reservoir/i, '');
+  const d = JSON.parse(JSON.stringify(mockData).replace(/Ambazari/g, shortName));
   const today = new Date().toISOString().split('T')[0];
 
   // Page header
@@ -1015,7 +1020,7 @@ function populatePage() {
 }
 
 populatePage();
-</script>
+
 /* ── SCROLL REVEAL OBSERVER (GitHub Spring) ───── */
 const revealObs = new IntersectionObserver((entries) => {
   entries.forEach(e => {

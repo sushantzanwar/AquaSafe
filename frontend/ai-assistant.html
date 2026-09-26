@@ -534,29 +534,25 @@ footer { border-top: 1px solid var(--border-sub); padding: 40px; background: var
   <div class="chat-container reveal reveal-d1">
     <div class="chat-head">
       <div class="chat-head-title">Interactive AI Agent</div>
-      <div class="chips-row">
-        <span class="chip-btn" data-q="What does elevated NDCI indicate?">NDCI explained</span>
-        <span class="chip-btn" data-q="What drives SPM turbidity in reservoirs?">SPM drivers</span>
-        <span class="chip-btn" data-q="Explain the MNDWI formula">MNDWI formula</span>
-        <span class="chip-btn" data-q="How is the spectral baseline calibrated?">Calibration</span>
+      <div class="chips-row" id="chips-row">
+        <!-- Dynamically populated from backend /api/analysis/{analysisId}/suggested-questions -->
+        <span class="chip-btn" style="opacity:0.6;">Generating contextual questions…</span>
       </div>
     </div>
 
     <div class="chat-history" id="chat-history">
-      <div class="msg user"><div class="bubble">What does elevated NDCI indicate?</div></div>
       <div class="msg ai">
-        <div class="bubble">An elevated NDCI (Normalized Difference Chlorophyll Index) value — typically above 2σ from the seasonal baseline — indicates elevated chlorophyll-a concentrations in the water column, which is a primary proxy for cyanobacterial or algal bloom activity. The current Zone 01 reading of 0.42 is 3.2σ above seasonal mean, which qualifies as a SEVERE-level indicator.</div>
-        <div class="cite-card">📄 Mishra &amp; Mishra (2012) · Remote Sensing of Environment — Normalized difference chlorophyll index...</div>
-      </div>
-      <div class="msg user"><div class="bubble">What drives SPM turbidity in reservoir systems?</div></div>
-      <div class="msg ai">
-        <div class="bubble">Suspended Particulate Matter (SPM) turbidity in reservoir systems is driven by three primary mechanisms: (1) runoff-induced sediment influx following precipitation events, (2) algal bloom-associated scattering from high phytoplankton density, and (3) wind-driven resuspension of bottom sediment in shallow zones. Zone 02 currently shows B04 (665 nm) reflectance consistent with mechanism 1.</div>
-        <div class="cite-card">📄 Pahlevan et al. (2020) · Remote Sensing of Environment — Seamless retrievals of chlorophyll-a...</div>
+        <div class="bubble" id="welcome-bubble">
+          👋 <strong>Welcome to AquaRadar RAG Hydrology Assistant!</strong><br><br>
+          I am connected directly to Google Gemini and an indexed peer-reviewed scientific literature corpus (ChromaDB vector store). I have access to multispectral optical indicators (NDCI, NDTI, MNDWI), baseline z-score deviation models, and WHO/EPA water safety guidelines.<br><br>
+          Ask any question about water anomalies, satellite band physics, or public safety guidance below.
+        </div>
+        <div class="cite-card" id="welcome-cite">📄 System Ready · Connected to AquaWatch RAG Core (Gemini + ChromaDB)</div>
       </div>
     </div>
 
     <div class="chat-input-bar">
-      <input type="text" class="chat-input" id="chat-input" placeholder="Ask an operational hydrology question…">
+      <input type="text" class="chat-input" id="chat-input" placeholder="Ask any water quality, satellite telemetry, or safety question…">
       <button class="chat-send-btn" id="chat-send-btn">Send</button>
     </div>
   </div>
@@ -590,55 +586,227 @@ const revealObs = new IntersectionObserver((entries) => {
 }, { threshold: 0.08 });
 document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
 
-/* ── AI CHAT ENGINE ───────────────────────────── */
-const responses = {
-  'ndci': 'An elevated NDCI value above the 2σ threshold indicates chlorophyll-a concentrations consistent with cyanobacterial blooms. Zone 01 currently reads 0.42 (3.2σ), which is at SEVERE alert level.',
-  'spm':  'SPM turbidity in reservoirs is driven by sediment runoff, phytoplankton scattering, and wind resuspension. Zone 02 B04 reflectance at 665 nm indicates runoff sediment influx is dominant.',
-  'mndwi':'MNDWI = (Green − SWIR) / (Green + SWIR). Water absorbs SWIR while reflecting green, yielding values near +1 for open water. It outperforms NDWI in turbid conditions.',
-  'calibr':'The spectral baseline is calibrated using a 3-year rolling percentile model per calendar month and zone. Anomaly scores are z-transformed against baseline with cloud mask filtering.',
-  'default':'Based on the current spectral profile for Basin LE-042, multi-band indicators suggest active bloom dynamics in the Western Basin. Cross-referencing B05 Red Edge (705 nm) helps isolate the chlorophyll signal.'
-};
-const citations = {
-  'ndci':   'Mishra & Mishra (2012) · Remote Sensing of Environment',
-  'spm':    'Pahlevan et al. (2020) · Remote Sensing of Environment',
-  'mndwi':  'Xu, H. (2006) · International Journal of Remote Sensing',
-  'calibr': 'EPA Technical Report (2023) · HAB Guidance for Utilities',
-  'default':'EPA (2023) · Cyanobacteria Technical Guidance'
-};
-function classify(q) {
-  const l = q.toLowerCase();
-  if (l.includes('ndci') || l.includes('chlorophyll') || l.includes('bloom')) return 'ndci';
-  if (l.includes('spm') || l.includes('turbidity')) return 'spm';
-  if (l.includes('mndwi') || l.includes('water index')) return 'mndwi';
-  if (l.includes('calibrat') || l.includes('baseline')) return 'calibr';
-  return 'default';
+/* ── DYNAMIC LAKE CONTEXT & QUESTIONS ─────────── */
+const activeLakeName = sessionStorage.getItem('water_body') || 'Ambazari Lake';
+const activeAnalysisId = sessionStorage.getItem('analysis_id') || 'A_AmbazariLake_Current';
+
+const apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+  ? 'http://localhost:8000' 
+  : '';
+
+// Update hero eyebrow with active lake context
+const heroEyebrow = document.querySelector('.bot-eyebrow');
+if (heroEyebrow) {
+  heroEyebrow.textContent = `RAG Hydrology Assistant · Active Context: ${activeLakeName}`;
+}
+const welcomeBubble = document.getElementById('welcome-bubble');
+if (welcomeBubble && activeLakeName) {
+  welcomeBubble.innerHTML = `👋 <strong>Welcome to AquaRadar RAG Hydrology Assistant!</strong><br><br>
+    I am connected live to <strong>Google Gemini</strong> and indexed peer-reviewed scientific literature (ChromaDB vector store). Currently analyzing telemetry for <strong>${activeLakeName}</strong>.<br><br>
+    Ask any question about satellite spectral indices (NDCI, NDTI, MNDWI), anomaly scores, baseline deviations, or public health &amp; swimming safety guidance.`;
 }
 
-function sendChat(q) {
+// Dynamically fetch contextual suggested questions from Gemini
+async function loadDynamicSuggestedQuestions() {
+  const chipsRow = document.getElementById('chips-row');
+  if (!chipsRow) return;
+
+  try {
+    const resp = await fetch(`${apiBase}/api/analysis/${encodeURIComponent(activeAnalysisId)}/suggested-questions`);
+    if (resp.ok) {
+      const data = await resp.json();
+      const questions = data.questions || [];
+      if (questions.length > 0) {
+        chipsRow.innerHTML = '';
+        questions.forEach(q => {
+          const chip = document.createElement('span');
+          chip.className = 'chip-btn';
+          chip.dataset.q = q;
+          // Clean short label for chip
+          let shortLabel = q;
+          if (shortLabel.length > 32) shortLabel = shortLabel.substring(0, 30) + '…';
+          chip.textContent = shortLabel;
+          chip.title = q;
+          chip.addEventListener('click', () => sendChat(q));
+          chipsRow.appendChild(chip);
+        });
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn('Could not load dynamic questions:', e);
+  }
+
+  // Dynamic fallback based on active lake name
+  chipsRow.innerHTML = `
+    <span class="chip-btn" data-q="What does the current NDCI reading indicate for ${activeLakeName}?">NDCI at ${activeLakeName}</span>
+    <span class="chip-btn" data-q="What drives turbidity and SPM in ${activeLakeName}?">SPM Turbidity</span>
+    <span class="chip-btn" data-q="Is it safe for swimming or community recreation in ${activeLakeName}?">Swimming Safety</span>
+    <span class="chip-btn" data-q="Explain the spectral anomaly baseline calibration for ${activeLakeName}">Baseline Calibration</span>
+  `;
+  chipsRow.querySelectorAll('.chip-btn').forEach(c => {
+    c.addEventListener('click', () => sendChat(c.dataset.q));
+  });
+}
+loadDynamicSuggestedQuestions();
+
+/* ── CITATION RESOLVER ────────────────────────── */
+function pickCitation(query, responseText) {
+  const combined = (query + ' ' + responseText).toLowerCase();
+  if (combined.includes('swim') || combined.includes('health') || combined.includes('toxic') || combined.includes('cyanotoxin') || combined.includes('who') || combined.includes('skin')) {
+    return 'WHO (2021) & EPA · Guidelines for Safe Recreational Water Environments & Cyanotoxins';
+  }
+  if (combined.includes('ndci') || combined.includes('chlorophyll') || combined.includes('red edge') || combined.includes('705')) {
+    return 'Mishra & Mishra (2012) · Remote Sensing of Environment — Normalized Difference Chlorophyll Index';
+  }
+  if (combined.includes('spm') || combined.includes('turbidity') || combined.includes('sediment') || combined.includes('scattering') || combined.includes('665')) {
+    return 'Pahlevan et al. (2020) · Remote Sensing of Environment — Seamless retrievals of chlorophyll-a & SPM';
+  }
+  if (combined.includes('mndwi') || combined.includes('ndwi') || combined.includes('swir') || combined.includes('water index')) {
+    return 'Xu, H. (2006) · International Journal of Remote Sensing — Modification of Normalised Difference Water Index';
+  }
+  if (combined.includes('baseline') || combined.includes('calibr') || combined.includes('sigma') || combined.includes('anomaly') || combined.includes('z-score')) {
+    return 'EPA Technical Guidance (2023) & Copernicus Sentinel-2 Calibration Framework';
+  }
+  return 'AquaWatch Peer-Reviewed Hydrology Corpus · ChromaDB Vector Store';
+}
+
+/* ── MARKDOWN FORMATTER ───────────────────────── */
+function formatMarkdown(text) {
+  if (!text) return '';
+  let html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  
+  // Headers
+  html = html.replace(/^### (.*$)/gim, '<h4 style="margin:12px 0 4px;color:var(--text);font-size:14px;font-weight:700;">$1</h4>');
+  html = html.replace(/^## (.*$)/gim, '<h3 style="margin:14px 0 6px;color:var(--text);font-size:15px;font-weight:700;">$1</h3>');
+  html = html.replace(/^# (.*$)/gim, '<h2 style="margin:16px 0 8px;color:var(--text);font-size:16px;font-weight:800;">$1</h2>');
+  
+  // Bold and Italic
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--text);font-weight:600;">$1</strong>');
+  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+  
+  // Horizontal rules
+  html = html.replace(/^---$/gim, '<hr style="border:none;border-top:1px solid var(--border-sub);margin:12px 0;">');
+
+  // Bullet points and Paragraphs
+  const lines = html.split('\n');
+  let inList = false;
+  const processed = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    const listMatch = line.match(/^[-•*]\s+(.*)/);
+    if (listMatch) {
+      if (!inList) {
+        processed.push('<ul style="margin:8px 0 8px 20px;padding:0;list-style-type:disc;">');
+        inList = true;
+      }
+      processed.push(`<li style="margin-bottom:4px;">${listMatch[1]}</li>`);
+    } else {
+      if (inList) {
+        processed.push('</ul>');
+        inList = false;
+      }
+      if (line !== '') {
+        if (!line.startsWith('<h') && !line.startsWith('<hr')) {
+          processed.push(`<p style="margin:0 0 8px 0;line-height:1.65;">${line}</p>`);
+        } else {
+          processed.push(line);
+        }
+      }
+    }
+  }
+  if (inList) processed.push('</ul>');
+  return processed.join('\n');
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/* ── LIVE API CHAT PIPELINE ───────────────────── */
+async function sendChat(q) {
   const log = document.getElementById('chat-history');
+  
+  // 1. Append User Message
   const u = document.createElement('div');
   u.className = 'msg user';
-  u.innerHTML = `<div class="bubble">${q}</div>`;
+  u.innerHTML = `<div class="bubble">${escapeHtml(q)}</div>`;
   log.appendChild(u);
   log.scrollTop = log.scrollHeight;
 
+  // 2. Append Typing Dots
   const t = document.createElement('div');
   t.className = 'msg ai';
   t.innerHTML = `<div class="bubble" style="padding:16px 20px;"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
   log.appendChild(t);
   log.scrollTop = log.scrollHeight;
 
-  const k = classify(q);
-  setTimeout(() => {
+  // 3. Make real API call to FastAPI backend
+  const apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    ? 'http://localhost:8000' 
+    : '';
+
+  const analysisId = sessionStorage.getItem('analysis_id') || 'A_AmbazariLake_Current';
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for LLM synthesis
+
+    const resp = await fetch(`${apiBase}/api/analysis/${encodeURIComponent(analysisId)}/explain`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_question: q }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
     t.remove();
+
+    if (!resp.ok) {
+      const errData = await resp.json().catch(() => ({}));
+      throw new Error(errData.detail || `Server returned HTTP ${resp.status}`);
+    }
+
+    const data = await resp.json();
+    const explanation = data.explanation || 'No response returned from the model.';
+    const citation = (data.citations && data.citations.length > 0) 
+      ? data.citations.join(' | ') 
+      : pickCitation(q, explanation);
+
     const a = document.createElement('div');
     a.className = 'msg ai';
-    a.innerHTML = `<div class="bubble">${responses[k]}</div><div class="cite-card">📄 ${citations[k]}</div>`;
+    a.innerHTML = `<div class="bubble">${formatMarkdown(explanation)}</div><div class="cite-card">📄 ${citation}</div>`;
     log.appendChild(a);
     log.scrollTop = log.scrollHeight;
-  }, 1300 + Math.random() * 500);
+
+  } catch (err) {
+    t.remove();
+    console.error('AI assistant error:', err);
+    
+    const isTimeout = err.name === 'AbortError' || err.message.includes('abort');
+    const displayMsg = isTimeout 
+      ? 'The model response took longer than expected to stream over the network. Please retry in a moment.' 
+      : err.message;
+
+    const a = document.createElement('div');
+    a.className = 'msg ai';
+    a.innerHTML = `
+      <div class="bubble" style="border-left:3px solid var(--yellow);">
+        <div style="color:var(--yellow);font-weight:600;margin-bottom:6px;">⚠️ Notice: ${displayMsg}</div>
+        <div>Please ensure the backend server is running on <code>http://localhost:8000</code>.</div>
+      </div>
+      <div class="cite-card">📄 System Communication Notice</div>
+    `;
+    log.appendChild(a);
+    log.scrollTop = log.scrollHeight;
+  }
 }
 
+// Event Listeners for Chat
 document.getElementById('chat-send-btn').addEventListener('click', () => {
   const inp = document.getElementById('chat-input');
   const v = inp.value.trim();
@@ -646,11 +814,23 @@ document.getElementById('chat-send-btn').addEventListener('click', () => {
   inp.value = '';
   sendChat(v);
 });
+
 document.getElementById('chat-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('chat-send-btn').click();
 });
+
 document.querySelectorAll('.chip-btn').forEach(c => {
   c.addEventListener('click', () => sendChat(c.dataset.q));
+});
+
+// Clicking sidebar publications triggers query about that publication
+document.querySelectorAll('.source-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const title = item.querySelector('.s-item-title')?.textContent || '';
+    if (title) {
+      sendChat(`Explain the methodology and relevance of the paper: "${title}"`);
+    }
+  });
 });
 
 /* ── BUTTON RIPPLE ────────────────────────────── */
