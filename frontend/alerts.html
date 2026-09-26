@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaRadar — Emergency Alert Feed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── GITHUB DARK THEME SYSTEM ─────────────────────── */
+:root {
+  --bg:          #0d1117;
+  --surface:     #161b22;
+  --surface2:    #1c2128;
+  --border:      #30363d;
+  --border-sub:  #21262d;
+  --text:        #e6edf3;
+  --muted:       #8b949e;
+  --faint:       #6e7681;
+  --green:       #3fb950;
+  --green-dim:   rgba(63,185,80,0.1);
+  --blue:        #58a6ff;
+  --purple:      #bc8cff;
+  --red:         #f85149;
+  --yellow:      #e3b341;
+
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── RESET & BASE ────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  opacity: 1;
+  transition: opacity 0.25s var(--ease-smooth);
+}
+body.page-leaving {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.25s var(--ease-smooth), transform 0.25s var(--ease-smooth);
+}
+
+a { text-decoration: none; color: inherit; }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+/* ── STATIC TOP NAV ──────────────────────────────── */
+.nav {
+  position: relative; /* Static positioning */
+  width: 100%;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 40px;
+  justify-content: space-between;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-sub);
+  z-index: 100;
+}
+
+.nav-brand {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.brand-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+  position: relative;
+}
+.brand-dot::after {
+  content: '';
+  position: absolute; inset: -4px;
+  border-radius: 50%;
+  background: var(--red);
+  opacity: 0.3;
+  animation: alert-pulse 2s ease-in-out infinite;
+}
+@keyframes alert-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50%       { transform: scale(2.2); opacity: 0; }
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.nav-link {
+  padding: 7px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+  border-radius: 7px;
+  position: relative;
+  transition: color 0.2s, background 0.2s;
+}
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 4px; left: 16px; right: 16px;
+  height: 1.5px;
+  background: var(--green);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s var(--ease-out);
+}
+.nav-link:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+.nav-link:hover::after { transform: scaleX(1); }
+.nav-link.active { color: var(--red); font-weight: 600; }
+.nav-link.active::after { background: var(--red); transform: scaleX(1); }
+
+.nav-right { display: flex; align-items: center; gap: 12px; }
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: rgba(255,255,255,0.04);
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+}
+.btn-back:hover {
+  border-color: var(--faint);
+  background: rgba(255,255,255,0.08);
+  transform: translateY(-1px);
+}
+
+/* ── SCROLL REVEAL ───────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(36px);
+  filter: blur(3px);
+  transition:
+    opacity   0.7s var(--ease-out),
+    transform 0.7s var(--ease-out),
+    filter    0.5s var(--ease-out);
+}
+.reveal.in { opacity: 1; transform: translateY(0); filter: blur(0); }
+.reveal-d1 { transition-delay: 0.1s; }
+.reveal-d2 { transition-delay: 0.2s; }
+.reveal-d3 { transition-delay: 0.3s; }
+
+/* ── PAGE HEADER ────────────────────────────────── */
+.page-header {
+  padding: 40px 48px 36px;
+  border-bottom: 1px solid var(--border-sub);
+  background: var(--surface);
+}
+.page-header-inner {
+  max-width: 1300px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+.ph-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+.ph-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: clamp(32px, 4vw, 48px);
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+.ph-sub {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.6;
+  max-width: 620px;
+}
+
+.filter-pills {
+  display: flex;
+  gap: 10px;
+  align-self: flex-end;
+}
+.filter-btn {
+  padding: 8px 18px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.filter-btn:hover { color: var(--text); border-color: var(--faint); }
+.filter-btn.active-all { background: rgba(255,255,255,0.08); color: var(--text); border-color: var(--faint); }
+.filter-btn.active-sev { background: rgba(248,81,73,0.15); color: var(--red); border-color: rgba(248,81,73,0.4); }
+.filter-btn.active-warn { background: rgba(227,179,65,0.15); color: var(--yellow); border-color: rgba(227,179,65,0.4); }
+.filter-btn.active-watch { background: var(--green-dim); color: var(--green); border-color: rgba(63,185,80,0.4); }
+
+/* ── LAYOUT ──────────────────────────────────────── */
+.layout {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 48px 48px 100px;
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 32px;
+}
+
+/* ── ALERT CARDS ─────────────────────────────────── */
+.alert-feed-col { display: flex; flex-direction: column; gap: 20px; }
+
+.alert-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.25s, transform 0.2s, box-shadow 0.25s;
+  cursor: default;
+}
+.alert-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+}
+.ac-severe::before { background: var(--red); }
+.ac-warn::before   { background: var(--yellow); }
+.ac-watch::before  { background: var(--green); }
+
+.alert-card:hover { transform: translateX(4px); }
+.ac-severe:hover { border-color: rgba(248,81,73,0.4); box-shadow: 0 4px 28px rgba(248,81,73,0.1); }
+.ac-warn:hover   { border-color: rgba(227,179,65,0.4); box-shadow: 0 4px 28px rgba(227,179,65,0.1); }
+.ac-watch:hover  { border-color: rgba(63,185,80,0.35); box-shadow: 0 4px 24px rgba(63,185,80,0.06); }
+
+.card-inner { padding: 26px 28px 26px 34px; }
+.card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.sev-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 99px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+}
+.sb-severe { background: rgba(248,81,73,0.14); color: var(--red);    border: 1px solid rgba(248,81,73,0.3); }
+.sb-warn   { background: rgba(227,179,65,0.12); color: var(--yellow); border: 1px solid rgba(227,179,65,0.3); }
+.sb-watch  { background: var(--green-dim);       color: var(--green);  border: 1px solid rgba(63,185,80,0.3); }
+
+.card-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.card-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 19px;
+  color: var(--text);
+  margin-bottom: 10px;
+  letter-spacing: -0.02em;
+}
+
+.card-body {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.65;
+  margin-bottom: 16px;
+}
+
+.card-stats-row {
+  display: flex;
+  gap: 20px;
+  padding: 12px 16px;
+  background: var(--surface2);
+  border-radius: 8px;
+  border: 1px solid var(--border-sub);
+  margin-bottom: 14px;
+}
+.cs-item {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--faint);
+}
+.cs-item strong { color: var(--text); font-weight: 600; }
+
+.card-loc {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--faint);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── PROTOCOL SIDEBAR ────────────────────────────── */
+.sidebar-col { display: flex; flex-direction: column; gap: 24px; }
+
+.protocol-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px;
+  position: sticky;
+  top: 20px;
+}
+.pc-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.pc-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--faint);
+  margin-bottom: 20px;
+}
+
+.pc-steps { display: flex; flex-direction: column; gap: 14px; }
+.pc-step {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border-sub);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  transition: border-color 0.2s;
+}
+.pc-step:hover { border-color: var(--border); }
+.ps-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--red);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* Summary stats widget */
+.summary-widget {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px 28px;
+}
+.sw-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+.sw-grid { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; gap: 12px; }
+.sw-val {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 28px;
+  line-height: 1;
+}
+.sw-lbl {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--faint);
+  margin-top: 6px;
+}
+
+/* ── FOOTER ──────────────────────────────────────── */
+footer { border-top: 1px solid var(--border-sub); padding: 40px; background: var(--bg); }
+.footer-inner { max-width: 1300px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
+.footer-brand { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 16px; letter-spacing: -0.03em; color: var(--text); }
+.footer-links { display: flex; gap: 24px; }
+.footer-links a { font-size: 13px; color: var(--faint); transition: color 0.2s; }
+.footer-links a:hover { color: var(--text); }
+.footer-copy { font-size: 12px; color: var(--faint); }
+
+/* ── RIPPLE ──────────────────────────────────────── */
+.rip {
+  position: absolute; border-radius: 50%;
+  background: rgba(255,255,255,0.18); pointer-events: none;
+  transform: scale(0); animation: rip-anim 0.55s var(--ease-out) forwards;
+}
+@keyframes rip-anim { to { transform: scale(4); opacity: 0; } }
+
+@media (max-width: 1000px) {
+  .layout { grid-template-columns: 1fr; padding: 32px 20px 60px; }
+  .page-header-inner { flex-direction: column; align-items: flex-start; }
+  .filter-pills { align-self: flex-start; }
+  .nav-links { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ STATIC TOP NAV ════════════════════════════════ -->
+<header class="nav">
+  <a href="index.html" class="nav-brand">
+    <span class="brand-dot"></span>
+    AQUARADAR
+  </a>
+
+  <nav class="nav-links">
+    <a href="index.html"        class="nav-link">Home</a>
+    <a href="dashboard.html"    class="nav-link">Dashboard</a>
+    <a href="assistant.html"    class="nav-link">Analysis &amp; Report</a>
+    <a href="alerts.html"       class="nav-link active">Alert Feed</a>
+    <a href="ai-assistant.html" class="nav-link">AI Assistant</a>
+    <a href="ground-truth.html" class="nav-link">Field Verify</a>
+  </nav>
+
+  <div class="nav-right">
+    <a href="dashboard.html" class="btn-back">
+      ← Back to Dashboard
+    </a>
+  </div>
+</header>
+
+<!-- ══ PAGE HEADER ═══════════════════════════════════ -->
+<div class="page-header">
+  <div class="page-header-inner">
+    <div>
+      <div class="ph-eyebrow">Real-Time Satellite Advisories · Basin LE-042</div>
+      <h1 class="ph-title">Emergency Alert Feed</h1>
+      <p class="ph-sub">Automated contamination flags, harmful algal bloom warnings, and turbidity breaches computed per Sentinel-2 pass with geodesic distance risk calculations.</p>
+    </div>
+
+    <div class="filter-pills">
+      <button class="filter-btn active-all" onclick="filterAlerts('all', this)">All (3)</button>
+      <button class="filter-btn" onclick="filterAlerts('severe', this)">Severe (1)</button>
+      <button class="filter-btn" onclick="filterAlerts('warn', this)">Warning (1)</button>
+      <button class="filter-btn" onclick="filterAlerts('watch', this)">Watch (1)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAIN LAYOUT ─────────────────────────────────── -->
+<div class="layout">
+  <!-- ALERTS COLUMN -->
+  <div class="alert-feed-col">
+    <!-- Severe Alert -->
+    <div class="alert-card ac-severe reveal reveal-d1" data-sev="severe">
+      <div class="card-inner">
+        <div class="card-top">
+          <span class="sev-badge sb-severe">● SEVERE ADVISORY</span>
+          <span class="card-time">2024-10-24 14:32Z · SATELLITE PASS</span>
+        </div>
+        <h2 class="card-title">Harmful Algal Bloom — NDCI 3.2σ Alarm Threshold Breach</h2>
+        <p class="card-body">NDCI reading of 0.42 exceeds the 3.0σ alarm boundary (0.31) at Maumee Bay Outlet. Satellite trajectory modeling indicates plume migration towards Toledo Intake Crib within approximately 48 hours under current wind vector (WSW 14 knots).</p>
+        
+        <div class="card-stats-row">
+          <div class="cs-item">Observed NDCI: <strong style="color:var(--red)">0.42</strong></div>
+          <div class="cs-item">Baseline: <strong>0.12</strong></div>
+          <div class="cs-item">Anomaly: <strong style="color:var(--red)">+3.2σ</strong></div>
+          <div class="cs-item">Confidence: <strong>94%</strong></div>
+        </div>
+
+        <div class="card-loc">
+          📍 41.7400°N, 83.3900°W · Zone 01 · 1,200 m from Intake Alpha · 3,400 m to Toledo Metro
+        </div>
+      </div>
+    </div>
+
+    <!-- Warning Alert -->
+    <div class="alert-card ac-warn reveal reveal-d2" data-sev="warn">
+      <div class="card-inner">
+        <div class="card-top">
+          <span class="sev-badge sb-warn">● WARNING ADVISORY</span>
+          <span class="card-time">2024-10-24 10:15Z · SENTINEL-2A</span>
+        </div>
+        <h2 class="card-title">Elevated Suspended Particulate Matter (SPM Turbidity)</h2>
+        <p class="card-body">SPM reflectance in Band B04 (665 nm) is 1.8σ above seasonal mean across the Central Basin transition sector. Pattern is consistent with post-precipitation runoff-driven sediment influx. Secondary wind resuspension observed.</p>
+        
+        <div class="card-stats-row">
+          <div class="cs-item">Observed SPM: <strong style="color:var(--yellow)">22 mg/L</strong></div>
+          <div class="cs-item">Baseline: <strong>17 mg/L</strong></div>
+          <div class="cs-item">Anomaly: <strong style="color:var(--yellow)">+1.8σ</strong></div>
+          <div class="cs-item">Confidence: <strong>91%</strong></div>
+        </div>
+
+        <div class="card-loc">
+          📍 41.8500°N, 83.1400°W · Zone 02 · 5,400 m from Intake Bravo · 8,200 m to Settlement
+        </div>
+      </div>
+    </div>
+
+    <!-- Watch Alert -->
+    <div class="alert-card ac-watch reveal reveal-d3" data-sev="watch">
+      <div class="card-inner">
+        <div class="card-top">
+          <span class="sev-badge sb-watch">● WATCH ADVISORY</span>
+          <span class="card-time">2024-10-23 08:00Z · SYSTEM MONITORING</span>
+        </div>
+        <h2 class="card-title">Chlorophyll-a 7-Day Upward Trend Detected</h2>
+        <p class="card-body">Sandusky Bay NDCI has trended upward over 7 consecutive satellite overpasses. Currently at 1.2σ — below WARNING threshold but approaching the WATCH boundary. Continued automated satellite tracking active.</p>
+        
+        <div class="card-stats-row">
+          <div class="cs-item">Observed NDCI: <strong style="color:var(--green)">0.16</strong></div>
+          <div class="cs-item">Baseline: <strong>0.11</strong></div>
+          <div class="cs-item">Anomaly: <strong style="color:var(--green)">+1.2σ</strong></div>
+          <div class="cs-item">Confidence: <strong>88%</strong></div>
+        </div>
+
+        <div class="card-loc">
+          📍 41.4700°N, 82.8300°W · Zone 03 · 12,000 m from nearest intake · 5,100 m to Sandusky
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR PROTOCOL COLUMN -->
+  <div class="sidebar-col">
+    <div class="summary-widget reveal">
+      <div class="sw-title">Advisory Summary</div>
+      <div class="sw-grid">
+        <div>
+          <div class="sw-val" style="color:var(--red)">1</div>
+          <div class="sw-lbl">Severe</div>
+        </div>
+        <div>
+          <div class="sw-val" style="color:var(--yellow)">1</div>
+          <div class="sw-lbl">Warning</div>
+        </div>
+        <div>
+          <div class="sw-val" style="color:var(--green)">1</div>
+          <div class="sw-lbl">Watch</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="protocol-card reveal reveal-d1">
+      <div class="pc-title">Response Protocol</div>
+      <div class="pc-sub">Standard municipal water utility guidelines</div>
+
+      <div class="pc-steps">
+        <div class="pc-step">
+          <span class="ps-num">01</span>
+          <span>Dispatch field crew for physical sampling at 41.74°N / 83.39°W at 0.5m &amp; 2m depth.</span>
+        </div>
+        <div class="pc-step">
+          <span class="ps-num">02</span>
+          <span>Initiate powdered activated carbon pre-treatment at Toledo Intake Crib.</span>
+        </div>
+        <div class="pc-step">
+          <span class="ps-num">03</span>
+          <span>Cross-reference 24h wind vector forecast with plume trajectory simulation.</span>
+        </div>
+        <div class="pc-step">
+          <span class="ps-num">04</span>
+          <span>Submit ground truth field reading to calibrate next satellite pass.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FOOTER ════════════════════════════════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">AQUARADAR</div>
+    <nav class="footer-links">
+      <a href="index.html">Home</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="assistant.html">Analysis &amp; Report</a>
+      <a href="alerts.html">Alert Feed</a>
+      <a href="ai-assistant.html">AI Assistant</a>
+      <a href="ground-truth.html">Field Verify</a>
+    </nav>
+    <div class="footer-copy">© 2024 AquaWatch System</div>
+  </div>
+</footer>
+
+<script>
+/* ── SCROLL REVEAL OBSERVER ───────────────────── */
+const revealObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('in');
+      revealObs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.08 });
+document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+/* ── ALERT FILTER ─────────────────────────────── */
+function filterAlerts(type, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    b.className = 'filter-btn';
+  });
+  if (type === 'all') btn.className = 'filter-btn active-all';
+  if (type === 'severe') btn.className = 'filter-btn active-sev';
+  if (type === 'warn') btn.className = 'filter-btn active-warn';
+  if (type === 'watch') btn.className = 'filter-btn active-watch';
+
+  document.querySelectorAll('.alert-card').forEach(card => {
+    if (type === 'all' || card.dataset.sev === type) {
+      card.style.display = 'block';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+
+/* ── RIPPLE ───────────────────────────────────── */
+document.querySelectorAll('.btn-back, .filter-btn').forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    const r = this.getBoundingClientRect();
+    const sz = Math.max(r.width, r.height);
+    const rip = document.createElement('span');
+    rip.className = 'rip';
+    rip.style.cssText = `width:${sz}px;height:${sz}px;left:${e.clientX - r.left - sz/2}px;top:${e.clientY - r.top - sz/2}px`;
+    this.appendChild(rip);
+    setTimeout(() => rip.remove(), 600);
+  });
+});
+
+/* ── PAGE TRANSITION ──────────────────────────── */
+document.querySelectorAll('a[href]').forEach(link => {
+  const h = link.getAttribute('href');
+  if (!h || h.startsWith('#') || h.startsWith('http')) return;
+  link.addEventListener('click', e => {
+    e.preventDefault();
+    document.body.classList.add('page-leaving');
+    setTimeout(() => location.href = h, 240);
+  });
+});
+</script>
+</body>
+</html>

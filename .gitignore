@@ -1,18 +1,34 @@
-# Python
-__pycache__/
-*.pyc
+.venv/
 venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
 .env
-
-# ChromaDB
-ai_assistant/chroma_db/
-chroma_db/
-
-# Node/React
-node_modules/
-build/
-dist/
-
-# OS Files
 .DS_Store
-Thumbs.db
+
+node_modules/
+frontend/dist/
+
+# Cached satellite inputs and generated state. Directory placeholders stay.
+data/**/*.tif
+data/**/*.tiff
+data/products/*.sqlite
+data/products/*.parquet
+data/scenes/**
+!data/scenes/.gitkeep
+data/baselines/*.sqlite
+data/baselines/*.joblib
+data/credits/*.sqlite
+data/credits/uploads/
+data/cache/**
+!data/cache/.gitkeep
+!data/cache/masks/
+!data/cache/masks/.gitkeep
+!data/cache/indicators/
+!data/cache/indicators/.gitkeep
+
+# Model weights are downloaded once, ahead of the demo, and are not committed.
+models/**
+!models/README.md
+!models/.gitkeep

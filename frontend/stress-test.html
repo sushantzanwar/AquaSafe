@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaRadar | Stress Test</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;600&family=Syne:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+:root {
+  --abyss: #060A0F; --bioluminite: #00FFB2; --radium: #C6FF47; --permafrost: #E8F4F1;
+  --deep-slate: #0E1A22; --iron-coral: #FF4D52; --surface: #0D1821;
+  --border: rgba(0, 255, 178, 0.15);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--abyss); color: var(--permafrost); font-family: 'Inter', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; opacity: 1; transition: opacity 0.3s; }
+body.page-exit { opacity: 0; }
+.syne { font-family: 'Syne', sans-serif; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+a { text-decoration: none; color: inherit; }
+
+/* Nav */
+.top-nav { height: 56px; background: rgba(6, 10, 15, 0.9); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 24px; z-index: 1000; flex-shrink: 0; }
+.wordmark { font-family: 'Syne'; font-weight: 600; font-size: 18px; color: var(--permafrost); letter-spacing: 1px; }
+.nav-links { display: flex; gap: 24px; margin-left: 48px; }
+.nav-links a { font-size: 14px; color: rgba(232,244,241,0.6); transition: 0.2s; }
+.nav-links a:hover, .nav-links a.active { color: var(--bioluminite); }
+
+/* Layout */
+.main-wrapper { display: flex; flex: 1; }
+.map-panel { width: 60%; position: relative; border-right: 1px solid var(--border); }
+#map { width: 100%; height: 100%; background: #000; }
+.plume-overlay { position: absolute; pointer-events: none; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 0; height: 0; border-radius: 50%; background: radial-gradient(circle, rgba(198,255,71,0.6) 0%, rgba(198,255,71,0) 70%); transition: width 1.5s ease-out, height 1.5s ease-out, opacity 1s; opacity: 0; z-index: 800; mix-blend-mode: screen; }
+.plume-active { width: 400px; height: 400px; opacity: 1; animation: pulse-plume 3s infinite; }
+@keyframes pulse-plume { 0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; } 50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; } }
+
+.control-panel { width: 40%; background: var(--surface); padding: 32px; overflow-y: auto; display: flex; flex-direction: column; gap: 32px; }
+.panel-head h2 { font-size: 28px; color: var(--permafrost); margin-bottom: 8px; }
+.panel-head p { color: rgba(232,244,241,0.6); font-size: 14px; line-height: 1.5; }
+
+.live-display { background: var(--deep-slate); border: 1px solid var(--border); padding: 16px; font-family: 'JetBrains Mono'; font-size: 13px; color: var(--bioluminite); display: flex; flex-direction: column; gap: 8px; }
+
+.form-group { display: flex; flex-direction: column; gap: 12px; }
+.form-group label { font-family: 'JetBrains Mono'; font-size: 12px; color: rgba(232,244,241,0.8); display: flex; justify-content: space-between; }
+.form-group input[type="range"] { width: 100%; accent-color: var(--bioluminite); }
+.form-group select, .form-group input[type="text"] { background: var(--abyss); border: 1px solid var(--border); color: var(--permafrost); padding: 12px; font-family: 'Inter'; outline: none; }
+.form-group select:focus, .form-group input[type="text"]:focus { border-color: var(--bioluminite); }
+
+.btn-inject { background: var(--bioluminite); color: var(--abyss); padding: 16px; font-family: 'Syne'; font-weight: 700; font-size: 16px; border: none; cursor: pointer; text-transform: uppercase; transition: 0.3s; clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%); }
+.btn-inject:hover { filter: brightness(1.1); }
+
+.results-panel { display: none; background: rgba(0,255,178,0.05); border-left: 3px solid var(--bioluminite); padding: 16px; margin-top: 16px; }
+.res-title { font-family: 'Syne'; font-size: 16px; margin-bottom: 12px; }
+.res-line { font-family: 'JetBrains Mono'; font-size: 12px; margin-bottom: 8px; color: rgba(232,244,241,0.8); }
+.res-line strong { color: var(--radium); }
+
+@media (max-width: 768px) {
+  .main-wrapper { flex-direction: column; }
+  .map-panel { width: 100%; height: 40%; }
+  .control-panel { width: 100%; height: 60%; }
+}
+</style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="wordmark">AQUARADAR</div>
+  <div class="nav-links">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="assistant.html">AI Assistant</a>
+    <a href="stress-test.html" class="active">Stress Test</a>
+    <a href="ground-truth.html">Field Verify</a>
+  </div>
+</nav>
+
+<div class="main-wrapper">
+  <div class="map-panel">
+    <div id="map"></div>
+    <div class="plume-overlay" id="plume"></div>
+  </div>
+  
+  <div class="control-panel">
+    <div class="panel-head">
+      <h2 class="syne">Plume Stress Sandbox</h2>
+      <p>Inject synthetic anomaly data into the hydrodynamic model to forecast alert generation and zone prioritization.</p>
+    </div>
+
+    <div class="live-display" id="live-disp">
+      <span>RADIUS: 2,500m</span>
+      <span>INDICATOR: turbidity</span>
+      <span>MAG: 3.2x</span>
+    </div>
+
+    <div class="form-group">
+      <div style="display:flex; gap:16px;">
+        <div style="flex:1;"><label>Latitude</label><input type="text" value="41.7600"></div>
+        <div style="flex:1;"><label>Longitude</label><input type="text" value="-83.3100"></div>
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label><span>Plume Radius</span><span id="lbl-rad">2500m</span></label>
+      <input type="range" id="inp-rad" min="500" max="5000" step="500" value="2500">
+    </div>
+    
+    <div class="form-group">
+      <label>Target Indicator</label>
+      <select id="inp-ind"><option value="turbidity">Turbidity (SPM)</option><option value="chlorophyll">Chlorophyll (NDCI)</option></select>
+    </div>
+    
+    <div class="form-group">
+      <label><span>Magnitude Multiplier</span><span id="lbl-mag">3.2x</span></label>
+      <input type="range" id="inp-mag" min="1.5" max="10.0" step="0.1" value="3.2">
+    </div>
+
+    <button class="btn-inject" id="btn-inject" onclick="runSim()">Inject Synthetic Plume</button>
+
+    <div class="results-panel" id="results">
+      <div class="res-title">Simulation Results</div>
+      <div class="res-line">Affected Area: <strong>~19.6 km²</strong></div>
+      <div class="res-line">Score Delta: <strong>+0.84σ</strong></div>
+      <div class="res-line">New Priority Rank: <strong>#1 (WARNING)</strong></div>
+      <div class="res-line" style="margin-top:12px; color:var(--iron-coral);">Est. Time to Intake: 14h 30m</div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const map = L.map('map', { zoomControl: false }).setView([41.7600, -83.3100], 11);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
+
+// Live update
+const inpRad = document.getElementById('inp-rad');
+const inpInd = document.getElementById('inp-ind');
+const inpMag = document.getElementById('inp-mag');
+const liveDisp = document.getElementById('live-disp');
+
+function updateLive() {
+  document.getElementById('lbl-rad').innerText = inpRad.value + 'm';
+  document.getElementById('lbl-mag').innerText = inpMag.value + 'x';
+  liveDisp.innerHTML = `<span>RADIUS: ${inpRad.value.toLocaleString()}m</span><span>INDICATOR: ${inpInd.value}</span><span>MAG: ${inpMag.value}x</span>`;
+}
+inpRad.addEventListener('input', updateLive);
+inpInd.addEventListener('change', updateLive);
+inpMag.addEventListener('input', updateLive);
+
+function runSim() {
+  const btn = document.getElementById('btn-inject');
+  btn.innerText = "Running Hydrodynamic Model...";
+  btn.style.opacity = '0.7';
+  document.getElementById('plume').classList.remove('plume-active');
+  document.getElementById('results').style.display = 'none';
+  
+  setTimeout(() => {
+    btn.innerText = "Plume Injected";
+    btn.style.background = "var(--radium)";
+    btn.style.color = "var(--abyss)";
+    
+    document.getElementById('plume').classList.add('plume-active');
+    
+    // Calculate dummy results
+    const area = (Math.PI * Math.pow(inpRad.value/1000, 2)).toFixed(1);
+    const score = (inpMag.value * 0.26).toFixed(2);
+    const results = document.getElementById('results');
+    results.innerHTML = `
+      <div class="res-title">Simulation Results</div>
+      <div class="res-line">Affected Area: <strong>~${area} km²</strong></div>
+      <div class="res-line">Score Delta: <strong>+${score}σ</strong></div>
+      <div class="res-line">New Priority Rank: <strong>#1 (WARNING)</strong></div>
+      <div class="res-line" style="margin-top:12px; color:var(--iron-coral);">Est. Time to Intake: 14h 30m</div>
+    `;
+    results.style.display = 'block';
+
+    setTimeout(() => {
+      btn.innerText = "Inject Synthetic Plume";
+      btn.style.background = "var(--bioluminite)";
+      btn.style.opacity = '1';
+    }, 3000);
+  }, 1500);
+}
+
+// Transitions
+document.querySelectorAll('a').forEach(a => {
+  a.addEventListener('click', e => {
+    if(a.getAttribute('href') && !a.getAttribute('href').startsWith('#')) {
+      e.preventDefault();
+      document.body.classList.add('page-exit');
+      setTimeout(() => window.location.href = a.getAttribute('href'), 300);
+    }
+  });
+});
+</script>
+</body>
+</html>

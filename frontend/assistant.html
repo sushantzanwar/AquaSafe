@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaRadar — Analysis Workspace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── STRICT GITHUB DARK THEME SYSTEM ──────────────── */
+:root {
+  --bg:          #0d1117;
+  --surface:     #161b22;
+  --surface2:    #1c2128;
+  --border:      #30363d;
+  --border-sub:  #21262d;
+  --text:        #e6edf3;
+  --muted:       #8b949e;
+  --faint:       #6e7681;
+  --green:       #3fb950;
+  --green-dim:   rgba(63,185,80,0.1);
+  --blue:        #58a6ff;
+  --purple:      #bc8cff;
+  --red:         #f85149;
+  --yellow:      #e3b341;
+
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── RESET & TYPOGRAPHY ──────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  opacity: 1;
+  transition: opacity 0.24s var(--ease-smooth);
+}
+body.page-leaving {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.24s var(--ease-smooth), transform 0.24s var(--ease-smooth);
+}
+
+a { text-decoration: none; color: inherit; }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+/* ── STATIC TOP NAV ──────────────────────────────── */
+.nav {
+  position: relative; /* Static position */
+  width: 100%;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 40px;
+  justify-content: space-between;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-sub);
+  z-index: 100;
+}
+
+.nav-brand {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.brand-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  position: relative;
+}
+.brand-dot::after {
+  content: '';
+  position: absolute; inset: -4px;
+  border-radius: 50%;
+  background: var(--green);
+  opacity: 0.3;
+  animation: dot-pulse 2.5s ease-in-out infinite;
+}
+@keyframes dot-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50%       { transform: scale(2.2); opacity: 0; }
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nav-link {
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+  border-radius: 7px;
+  position: relative;
+  transition: color 0.2s, background 0.2s;
+}
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 4px; left: 18px; right: 18px;
+  height: 1.5px;
+  background: var(--green);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s var(--ease-out);
+}
+.nav-link:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+.nav-link:hover::after { transform: scaleX(1); }
+.nav-link.active { color: var(--green); font-weight: 600; }
+.nav-link.active::after { transform: scaleX(1); }
+
+.nav-right { display: flex; align-items: center; gap: 12px; }
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: rgba(255,255,255,0.04);
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+}
+.btn-back:hover {
+  border-color: var(--faint);
+  background: rgba(255,255,255,0.08);
+  transform: translateY(-1px);
+}
+
+/* ── SCROLL DOWN REVEAL ─────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(36px);
+  filter: blur(3px);
+  transition:
+    opacity   0.7s var(--ease-out),
+    transform 0.7s var(--ease-out),
+    filter    0.5s var(--ease-out);
+}
+.reveal.in { opacity: 1; transform: translateY(0); filter: blur(0); }
+.reveal-d1 { transition-delay: 0.1s; }
+.reveal-d2 { transition-delay: 0.2s; }
+.reveal-d3 { transition-delay: 0.3s; }
+.reveal-d4 { transition-delay: 0.4s; }
+
+/* ── PAGE HEADER ────────────────────────────────── */
+.page-header {
+  margin-top: 0;
+  padding: 40px 48px 0;
+  border-bottom: 1px solid var(--border-sub);
+  background: var(--surface);
+}
+.page-header-inner {
+  max-width: 1300px;
+  margin: 0 auto;
+}
+.page-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--green);
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+.page-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: clamp(32px, 4vw, 48px);
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+.page-sub {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.6;
+  max-width: 620px;
+  margin-bottom: 32px;
+}
+
+/* ── TAB NAV BAR (Clean 3 Sections) ──────────────── */
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  border-top: 1px solid var(--border-sub);
+  overflow-x: auto;
+}
+.tab-bar::-webkit-scrollbar { display: none; }
+.tab-btn {
+  padding: 14px 22px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+.tab-btn::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--green);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.3s var(--ease-out);
+  box-shadow: 0 0 8px rgba(63,185,80,0.5);
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--green); }
+.tab-btn.active::after { transform: scaleX(1); }
+
+/* ── WORKSPACE LAYOUT ────────────────────────────── */
+.layout {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 0 48px 100px;
+}
+
+.section-head {
+  padding: 48px 0 24px;
+  border-bottom: 1px solid var(--border-sub);
+  margin-bottom: 32px;
+}
+.s-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--green);
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.s-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: clamp(24px, 3vw, 36px);
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+/* ── 1. ANOMALY EVIDENCE ─────────────────────────── */
+.zones-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+.zone-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.25s, box-shadow 0.3s, transform 0.2s;
+  cursor: default;
+}
+.zone-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+.z-severe::before { background: var(--red); }
+.z-warn::before   { background: var(--yellow); }
+.z-watch::before  { background: var(--green); }
+.z-ok::before     { background: var(--blue); }
+
+.zone-card:hover { transform: translateY(-3px); }
+.z-severe:hover { border-color: rgba(248,81,73,0.4); box-shadow: 0 8px 36px rgba(248,81,73,0.1); }
+.z-warn:hover   { border-color: rgba(227,179,65,0.4); box-shadow: 0 8px 36px rgba(227,179,65,0.1); }
+.z-watch:hover  { border-color: rgba(63,185,80,0.4);  box-shadow: 0 8px 36px rgba(63,185,80,0.07); }
+.z-ok:hover     { border-color: rgba(88,166,255,0.35); }
+
+.zone-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.zone-name {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.zone-id {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--faint);
+  margin-top: 4px;
+}
+
+.sev-badge {
+  padding: 4px 12px;
+  border-radius: 99px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+}
+.sev-severe { background: rgba(248,81,73,0.14); color: var(--red);    border: 1px solid rgba(248,81,73,0.3); }
+.sev-warn   { background: rgba(227,179,65,0.12); color: var(--yellow); border: 1px solid rgba(227,179,65,0.3); }
+.sev-watch  { background: var(--green-dim);       color: var(--green);  border: 1px solid rgba(63,185,80,0.3); }
+.sev-ok     { background: rgba(88,166,255,0.1);   color: var(--blue);   border: 1px solid rgba(88,166,255,0.25); }
+
+.zone-score {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 40px;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.zone-score-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--faint);
+  margin-bottom: 24px;
+}
+
+.ind-row { margin-bottom: 14px; }
+.ind-meta {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.ind-track {
+  height: 5px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.ind-fill { height: 100%; border-radius: 3px; }
+
+/* ── 2. ALERT FEED ───────────────────────────────── */
+.alerts-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 28px;
+}
+.alert-list { display: flex; flex-direction: column; gap: 16px; }
+
+.alert-item {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.25s, transform 0.2s, box-shadow 0.25s;
+  cursor: default;
+}
+.alert-item::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+}
+.a-severe::before { background: var(--red); }
+.a-warn::before   { background: var(--yellow); }
+.a-watch::before  { background: var(--green); }
+
+.alert-item:hover { transform: translateX(4px); }
+.a-severe:hover { border-color: rgba(248,81,73,0.4); box-shadow: 0 4px 24px rgba(248,81,73,0.08); }
+.a-warn:hover   { border-color: rgba(227,179,65,0.4); box-shadow: 0 4px 24px rgba(227,179,65,0.08); }
+.a-watch:hover  { border-color: rgba(63,185,80,0.35); }
+
+.alert-inner { padding: 22px 24px 22px 30px; }
+.alert-top { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.alert-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 17px; color: var(--text); margin-bottom: 8px; }
+.alert-body { font-size: 14px; color: var(--muted); line-height: 1.6; }
+.alert-loc { margin-top: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--faint); }
+
+.protocol-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px;
+  height: fit-content;
+  position: sticky; top: 20px;
+}
+.protocol-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 17px; color: var(--text); margin-bottom: 6px; }
+.protocol-sub { font-size: 11px; color: var(--faint); margin-bottom: 20px; font-family: 'JetBrains Mono', monospace; }
+.protocol-list { display: flex; flex-direction: column; gap: 12px; }
+.protocol-step {
+  display: flex; gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border-sub);
+  border-radius: 8px;
+  font-size: 13px; color: var(--muted); line-height: 1.5;
+  transition: border-color 0.2s;
+}
+.protocol-step:hover { border-color: var(--border); }
+.p-num { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--green); font-weight: 600; flex-shrink: 0; }
+
+/* ── 3. SITE RANKING ─────────────────────────────── */
+.rank-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px; }
+.rank-card {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  align-items: center;
+  gap: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px 30px;
+  transition: border-color 0.25s, transform 0.2s, box-shadow 0.25s;
+  cursor: default;
+}
+.rank-card:hover {
+  border-color: rgba(63,185,80,0.35);
+  transform: translateX(4px);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+}
+.rank-num { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 36px; letter-spacing: -0.04em; line-height: 1; }
+.r1 { color: var(--red); }
+.r2 { color: var(--yellow); }
+.r3 { color: var(--green); }
+.rn { color: var(--faint); }
+
+.rank-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px; color: var(--text); margin-bottom: 6px; }
+.rank-dists { display: flex; gap: 20px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--faint); }
+.rank-dists span { color: var(--muted); }
+
+.rank-score { text-align: right; }
+.rank-score-val { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 28px; letter-spacing: -0.03em; color: var(--text); }
+.rank-score-lbl { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--faint); margin-top: 2px; }
+
+.formula-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 24px;
+}
+.formula-lbl { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--faint); margin-bottom: 14px; letter-spacing: 0.05em; font-weight: 600; }
+.formula-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13.5px; color: var(--text); line-height: 1.8;
+  background: var(--surface2); border: 1px solid var(--border-sub);
+  border-radius: 8px; padding: 18px 22px;
+}
+.formula-code .kw  { color: var(--purple); }
+.formula-code .num { color: var(--blue); }
+.formula-code .fn  { color: var(--green); }
+
+.export-btns { display: flex; gap: 12px; }
+.btn-export {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 20px; font-size: 13px; font-weight: 600;
+  color: var(--green); border: 1px solid rgba(63,185,80,0.35);
+  background: rgba(63,185,80,0.06); border-radius: 7px;
+  cursor: pointer; font-family: inherit; position: relative; overflow: hidden;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+}
+.btn-export:hover {
+  background: rgba(63,185,80,0.14); border-color: var(--green);
+  transform: translateY(-1px);
+}
+
+/* ── FOOTER ──────────────────────────────────────── */
+footer { border-top: 1px solid var(--border-sub); padding: 40px; background: var(--bg); }
+.footer-inner { max-width: 1300px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
+.footer-brand { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 16px; letter-spacing: -0.03em; color: var(--text); }
+.footer-links { display: flex; gap: 24px; }
+.footer-links a { font-size: 13px; color: var(--faint); transition: color 0.2s; }
+.footer-links a:hover { color: var(--text); }
+.footer-copy { font-size: 12px; color: var(--faint); }
+
+/* ── RIPPLE ──────────────────────────────────────── */
+.rip {
+  position: absolute; border-radius: 50%;
+  background: rgba(255,255,255,0.18); pointer-events: none;
+  transform: scale(0); animation: rip-anim 0.55s var(--ease-out) forwards;
+}
+@keyframes rip-anim { to { transform: scale(4); opacity: 0; } }
+
+@media (max-width: 1000px) {
+  .zones-grid { grid-template-columns: 1fr; }
+  .alerts-grid { grid-template-columns: 1fr; }
+  .nav-links { display: none; }
+  .layout { padding: 0 20px 60px; }
+  .page-header { padding: 36px 20px 0; }
+}
+@media (max-width: 600px) {
+  .nav { padding: 0 16px; }
+  .page-title { font-size: 28px; }
+  .rank-card { grid-template-columns: 48px 1fr auto; gap: 14px; padding: 18px 20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ STATIC TOP NAV ════════════════════════════════ -->
+<header class="nav">
+  <a href="index.html" class="nav-brand">
+    <span class="brand-dot"></span>
+    AQUARADAR
+  </a>
+
+  <nav class="nav-links">
+    <a href="index.html"        class="nav-link">Home</a>
+    <a href="dashboard.html"    class="nav-link">Dashboard</a>
+    <a href="assistant.html"    class="nav-link active">Analysis</a>
+    <a href="ai-assistant.html" class="nav-link">AI Assistant</a>
+    <a href="ground-truth.html" class="nav-link">Field Verification</a>
+  </nav>
+
+  <div class="nav-right">
+    <a href="dashboard.html" class="btn-back">
+      ← Back to Dashboard
+    </a>
+  </div>
+</header>
+
+<!-- ══ PAGE HEADER ═══════════════════════════════════ -->
+<div class="page-header">
+  <div class="page-header-inner">
+    <div class="page-eyebrow">Sequence Step 2 · Basin LE-042 Workspace</div>
+    <h1 class="page-title">Analysis &amp; Report</h1>
+    <p class="page-sub">Zonal anomaly evidence, live emergency alert feeds, and priority site rankings evaluated per Sentinel-2 overpass.</p>
+
+    <!-- Clean Tab Navigation (Anomaly Evidence, Alert Feed, Site Ranking) -->
+    <div class="tab-bar">
+      <button class="tab-btn active" data-target="anomaly">1. Anomaly Evidence</button>
+      <button class="tab-btn" data-target="alerts">2. Alert Feed</button>
+      <button class="tab-btn" data-target="ranking">3. Site Ranking</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAIN WORKSPACE LAYOUT ═════════════════════════ -->
+<div class="layout">
+
+  <!-- ── 1. ANOMALY EVIDENCE ───────────────────────── -->
+  <section id="anomaly" class="reveal">
+    <div class="section-head">
+      <div class="s-eyebrow">Zonal Analysis · 4 Sectors</div>
+      <h2 class="s-title">1. Anomaly Evidence</h2>
+    </div>
+
+    <div class="zones-grid">
+      <!-- Zone 1 -->
+      <div class="zone-card z-severe reveal reveal-d1">
+        <div class="zone-top">
+          <div>
+            <div class="zone-name">Maumee Bay Outlet</div>
+            <div class="zone-id">ZONE-01 · North Basin · 312 km²</div>
+          </div>
+          <span class="sev-badge sev-severe">SEVERE +3.2σ</span>
+        </div>
+        <div class="zone-score" style="color:var(--red)">8.4</div>
+        <div class="zone-score-sub">Fused Anomaly Risk Score / 10</div>
+        
+        <div class="ind-row">
+          <div class="ind-meta"><span>NDCI (Chlorophyll)</span><span>0.42 (baseline 0.12) <strong style="color:var(--red)">+3.2σ</strong></span></div>
+          <div class="ind-track"><div class="ind-fill" style="width:85%;background:var(--red);"></div></div>
+        </div>
+        <div class="ind-row">
+          <div class="ind-meta"><span>SPM (Turbidity)</span><span>45 mg/L (baseline 18) <strong style="color:var(--yellow)">+2.4σ</strong></span></div>
+          <div class="ind-track"><div class="ind-fill" style="width:68%;background:var(--yellow);"></div></div>
+        </div>
+        <div class="ind-row">
+          <div class="ind-meta"><span>SDD (Transparency)</span><span>0.4 m (baseline 1.8) <strong style="color:var(--blue)">−2.1σ</strong></span></div>
+          <div class="ind-track"><div class="ind-fill" style="width:20%;background:var(--blue);"></div></div>
+        </div>
+      </div>
+
+      <!-- Zone 2 -->
+      <div class="zone-card z-warn reveal reveal-d2">
+        <div class="zone-top">
+          <div>
+            <div class="zone-name">Central Basin Transition</div>
+            <div class="zone-id">ZONE-02 · Central · 489 km²</div>
+          </div>
+          <span class="sev-badge sev-warn">WARNING +1.8σ</span>
+        </div>
+        <div class="zone-score" style="color:var(--yellow)">5.7</div>
+        <div class="zone-score-sub">Fused Anomaly Risk Score / 10</div>
+
+        <div class="ind-row">
+          <div class="ind-meta"><span>NDCI (Chlorophyll)</span><span>0.21 (baseline 0.10) <strong style="color:var(--yellow)">+1.8σ</strong></span></div>
+          <div class="ind-track"><div class="ind-fill" style="width:52%;background:var(--yellow);"></div></div>
+        </div>
+        <div class="ind-row">
+          <div class="ind-meta"><span>MNDWI (Water Extent)</span><span>0.68 (baseline 0.61) <strong style="color:var(--green)">+0.9σ</strong></span></div>
+          <div class="ind-track"><div class="ind-fill" style="width:38%;background:var(--green);"></div></div>
+        </div>
+        <div class="ind-row">
+          <div class="ind-meta"><span>SPM (Turbidity)</span><span>22 mg/L (baseline 17) <strong style="color:var(--yellow)">+1.2σ</strong></span></div>
+          <div class="ind-track"><div class="ind-fill" style="width:34%;background:var(--yellow);"></div></div>
+        </div>
+      </div>
+
+      <!-- Zone 3 -->
+      <div class="zone-card z-watch reveal reveal-d3">
+        <div class="zone-top">
+          <div>
+            <div class="zone-name">Sandusky Bay</div>
+            <div class="zone-id">ZONE-03 · South Basin · 218 km²</div>
+          </div>
+          <span class="sev-badge sev-watch">WATCH +1.2σ</span>
+        </div>
+        <div class="zone-score" style="color:var(--green)">3.4</div>
+        <div class="zone-score-sub">Fused Anomaly Risk Score / 10</div>
+
+        <div class="ind-row">
+          <div class="ind-meta"><span>NDCI (Chlorophyll)</span><span>0.16 (baseline 0.11) <strong style="color:var(--green)">+1.2σ</strong></span></div>
+          <div class="ind-track"><div class="ind-fill" style="width:30%;background:var(--green);"></div></div>
+        </div>
+        <div class="ind-row">
+          <div class="ind-meta"><span>SDD (Transparency)</span><span>1.4 m (baseline 2.1) <strong style="color:var(--blue)">−1.0σ</strong></span></div>
+          <div class="ind-track"><div class="ind-fill" style="width:24%;background:var(--blue);"></div></div>
+        </div>
+      </div>
+
+      <!-- Zone 4 -->
+      <div class="zone-card z-ok reveal reveal-d4">
+        <div class="zone-top">
+          <div>
+            <div class="zone-name">Eastern Open Water</div>
+            <div class="zone-id">ZONE-04 · East Arm · 226 km²</div>
+          </div>
+          <span class="sev-badge sev-ok">NOMINAL</span>
+        </div>
+        <div class="zone-score" style="color:var(--blue)">1.2</div>
+        <div class="zone-score-sub">Fused Anomaly Risk Score / 10</div>
+
+        <div class="ind-row">
+          <div class="ind-meta"><span>NDCI (Chlorophyll)</span><span>0.09 (baseline 0.10) <strong style="color:var(--blue)">−0.2σ</strong></span></div>
+          <div class="ind-track"><div class="ind-fill" style="width:12%;background:var(--blue);"></div></div>
+        </div>
+        <div class="ind-row">
+          <div class="ind-meta"><span>SPM (Turbidity)</span><span>14 mg/L (baseline 16) <strong style="color:var(--blue)">−0.4σ</strong></span></div>
+          <div class="ind-track"><div class="ind-fill" style="width:8%;background:var(--blue);"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 2. ALERT FEED ─────────────────────────────── -->
+  <section id="alerts" class="reveal">
+    <div class="section-head">
+      <div class="s-eyebrow">Real-Time Advisories · Basin LE-042</div>
+      <h2 class="s-title">2. Alert Feed</h2>
+    </div>
+
+    <div class="alerts-grid">
+      <div class="alert-list">
+        <div class="alert-item a-severe reveal reveal-d1">
+          <div class="alert-inner">
+            <div class="alert-top">
+              <span class="sev-badge sev-severe">● SEVERE</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint)">2024-10-24 14:32Z · SATELLITE PASS</span>
+            </div>
+            <div class="alert-title">Harmful Algal Bloom — NDCI Threshold Breach</div>
+            <div class="alert-body">NDCI reading of 0.42 exceeds the 3σ alarm threshold (0.31) at Maumee Bay Outlet. Trajectory modeling shows plume migration towards Toledo Intake Crib within 48 hours under current wind conditions.</div>
+            <div class="alert-loc">📍 41.74°N, 83.39°W · Zone 01 · 1,200 m from Intake Alpha</div>
+          </div>
+        </div>
+
+        <div class="alert-item a-warn reveal reveal-d2">
+          <div class="alert-inner">
+            <div class="alert-top">
+              <span class="sev-badge sev-warn">● WARNING</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint)">2024-10-24 10:15Z · SENTINEL-2A</span>
+            </div>
+            <div class="alert-title">Elevated Suspended Particulate Matter</div>
+            <div class="alert-body">SPM in Band B04 (665 nm) is 1.8σ above seasonal baseline across Central Basin. Pattern is consistent with post-precipitation runoff-driven sediment influx.</div>
+            <div class="alert-loc">📍 41.85°N, 83.14°W · Zone 02 · 5,400 m from Intake Bravo</div>
+          </div>
+        </div>
+
+        <div class="alert-item a-watch reveal reveal-d3">
+          <div class="alert-inner">
+            <div class="alert-top">
+              <span class="sev-badge sev-watch">● WATCH</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint)">2024-10-23 08:00Z · SYSTEM</span>
+            </div>
+            <div class="alert-title">Chlorophyll-a 7-Day Upward Trend</div>
+            <div class="alert-body">Sandusky Bay NDCI has trended upward over 7 consecutive satellite passes. Currently at 1.2σ — approaching WATCH boundary. Continued satellite monitoring active.</div>
+            <div class="alert-loc">📍 41.47°N, 82.83°W · Zone 03 · 12 km from nearest intake</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="protocol-box reveal reveal-d2">
+        <div class="protocol-title">Recommended Protocol</div>
+        <div class="protocol-sub">Water utility advisory steps</div>
+        <div class="protocol-list">
+          <div class="protocol-step">
+            <span class="p-num">01</span>
+            <span>Deploy field tech for physical sampling at 41.74°N / 83.39°W at 0.5m &amp; 2m depth.</span>
+          </div>
+          <div class="protocol-step">
+            <span class="p-num">02</span>
+            <span>Pre-treat Toledo Intake Crib infrastructure with powdered activated carbon.</span>
+          </div>
+          <div class="protocol-step">
+            <span class="p-num">03</span>
+            <span>Cross-reference 24h wind vector forecast with hydrodynamic trajectory model.</span>
+          </div>
+          <div class="protocol-step">
+            <span class="p-num">04</span>
+            <span>Submit ground truth field reading to calibrate next satellite pass.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 3. SITE RANKING ─────────────────────────────── -->
+  <section id="ranking" class="reveal">
+    <div class="section-head">
+      <div class="s-eyebrow">Priority Order · Geodesic Distance Weighted</div>
+      <h2 class="s-title">3. Site Ranking</h2>
+    </div>
+
+    <div class="rank-list">
+      <div class="rank-card reveal reveal-d1">
+        <div class="rank-num r1">#1</div>
+        <div>
+          <div class="rank-name">Maumee Bay Outlet</div>
+          <div class="rank-dists">
+            <span>Intake: <strong>1,200 m</strong></span> · 
+            <span>Settlement: <strong>3,400 m</strong></span> · 
+            <span>Zone 01</span>
+          </div>
+        </div>
+        <div class="rank-score">
+          <div class="rank-score-val" style="color:var(--red)">8.4</div>
+          <div class="rank-score-lbl">/ 10.0 SEVERE</div>
+        </div>
+      </div>
+
+      <div class="rank-card reveal reveal-d2">
+        <div class="rank-num r2">#2</div>
+        <div>
+          <div class="rank-name">Central Basin Transition</div>
+          <div class="rank-dists">
+            <span>Intake: <strong>5,400 m</strong></span> · 
+            <span>Settlement: <strong>8,200 m</strong></span> · 
+            <span>Zone 02</span>
+          </div>
+        </div>
+        <div class="rank-score">
+          <div class="rank-score-val" style="color:var(--yellow)">5.7</div>
+          <div class="rank-score-lbl">/ 10.0 WARNING</div>
+        </div>
+      </div>
+
+      <div class="rank-card reveal reveal-d3">
+        <div class="rank-num r3">#3</div>
+        <div>
+          <div class="rank-name">Sandusky Bay</div>
+          <div class="rank-dists">
+            <span>Intake: <strong>12,000 m</strong></span> · 
+            <span>Settlement: <strong>5,100 m</strong></span> · 
+            <span>Zone 03</span>
+          </div>
+        </div>
+        <div class="rank-score">
+          <div class="rank-score-val" style="color:var(--green)">3.4</div>
+          <div class="rank-score-lbl">/ 10.0 WATCH</div>
+        </div>
+      </div>
+
+      <div class="rank-card reveal reveal-d4">
+        <div class="rank-num rn">#4</div>
+        <div>
+          <div class="rank-name">Eastern Open Water</div>
+          <div class="rank-dists">
+            <span>Intake: <strong>38,000 m</strong></span> · 
+            <span>Settlement: <strong>22,000 m</strong></span> · 
+            <span>Zone 04</span>
+          </div>
+        </div>
+        <div class="rank-score">
+          <div class="rank-score-val" style="color:var(--blue)">1.2</div>
+          <div class="rank-score-lbl">/ 10.0 NOMINAL</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="formula-box reveal">
+      <div class="formula-lbl">PRIORITY SCORE FORMULA</div>
+      <div class="formula-code">
+        <span class="kw">Priority</span> = (<span class="fn">fused_anomaly_score</span> × <span class="num">0.60</span>)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (<span class="num">1</span> / <span class="fn">dist_intake_km</span> × <span class="num">0.25</span>)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (<span class="fn">population_density_weight</span> × <span class="num">0.15</span>)<br>
+        <br>
+        <span style="color:var(--faint)">// Normalized 0.0 – 10.0 scale · Re-evaluated per Sentinel-2 pass</span>
+      </div>
+    </div>
+
+    <div class="export-btns reveal">
+      <button class="btn-export" id="exp-geo">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"/><path d="M7.25 7.689V2a.75.75 0 0 1 1.5 0v5.689l1.97-1.97a.749.749 0 1 1 1.06 1.061l-3.25 3.25a.749.749 0 0 1-1.06 0L4.22 6.78a.749.749 0 1 1 1.06-1.061l1.97 1.97Z"/></svg>
+        Export GeoJSON
+      </button>
+      <button class="btn-export" id="exp-csv">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"/><path d="M7.25 7.689V2a.75.75 0 0 1 1.5 0v5.689l1.97-1.97a.749.749 0 1 1 1.06 1.061l-3.25 3.25a.749.749 0 0 1-1.06 0L4.22 6.78a.749.749 0 1 1 1.06-1.061l1.97 1.97Z"/></svg>
+        Export CSV
+      </button>
+    </div>
+  </section>
+
+</div><!-- end layout -->
+
+<!-- ══ FOOTER ════════════════════════════════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">AQUARADAR</div>
+    <nav class="footer-links">
+      <a href="index.html">Home</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="assistant.html">Analysis</a>
+      <a href="ai-assistant.html">AI Assistant</a>
+      <a href="ground-truth.html">Field Verification</a>
+    </nav>
+    <div class="footer-copy">© 2024 AquaWatch System</div>
+  </div>
+</footer>
+
+<script>
+/* ── SCROLL REVEAL OBSERVER (GitHub Spring) ───── */
+const revealObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('in');
+      revealObs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.08 });
+document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+/* ── STICKY TABS & ACTIVE SCROLL ─────────────── */
+const tabBtns = document.querySelectorAll('.tab-btn');
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    tabBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const target = btn.dataset.target;
+    document.getElementById(target)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+
+const secs = ['anomaly', 'alerts', 'ranking'];
+const secObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const id = e.target.id;
+      tabBtns.forEach(b => b.classList.toggle('active', b.dataset.target === id));
+    }
+  });
+}, { threshold: 0.3 });
+secs.forEach(id => {
+  const el = document.getElementById(id);
+  if (el) secObs.observe(el);
+});
+
+/* ── BUTTON RIPPLE ────────────────────────────── */
+document.querySelectorAll('.btn-export, .btn-back').forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    const r = this.getBoundingClientRect();
+    const sz = Math.max(r.width, r.height);
+    const rip = document.createElement('span');
+    rip.className = 'rip';
+    rip.style.cssText = `width:${sz}px;height:${sz}px;left:${e.clientX - r.left - sz/2}px;top:${e.clientY - r.top - sz/2}px`;
+    this.appendChild(rip);
+    setTimeout(() => rip.remove(), 600);
+  });
+});
+
+/* ── PAGE TRANSITION ──────────────────────────── */
+document.querySelectorAll('a[href]').forEach(link => {
+  const h = link.getAttribute('href');
+  if (!h || h.startsWith('#') || h.startsWith('http')) return;
+  link.addEventListener('click', e => {
+    e.preventDefault();
+    document.body.classList.add('page-leaving');
+    setTimeout(() => location.href = h, 240);
+  });
+});
+</script>
+</body>
+</html>

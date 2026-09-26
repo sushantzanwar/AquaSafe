@@ -1,97 +1,32 @@
-import { useMemo, useState } from "react";
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import type { HistoryPoint } from "../types/analysis";
+import type { TrendSeries } from "../api/client";
 
-export function TrendChart({ history }: { history: HistoryPoint[] }) {
-  const [range, setRange] = useState(100);
-
-  const visible = useMemo(() => {
-    if (history.length === 0) return [];
-    const count = Math.max(1, Math.round((range / 100) * history.length));
-    return history.slice(-count);
-  }, [history, range]);
-
-  if (history.length === 0) {
-    return (
-      <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-6 text-sm text-slate-400">
-        No historical data yet for this water body. Run an analysis to start
-        building the timeline.
-      </div>
-    );
-  }
-
+export function TrendChart({ series }: { series: TrendSeries | null }) {
+  if (!series) return <p className="muted">Choose a zone to plot its history.</p>;
+  const points = series.points.filter((point) => point.value !== null);
+  if (!points.length) return <p className="muted">No {series.indicator} values for this zone yet.</p>;
+  const values = points.flatMap((point) => [point.value as number, point.baseline_mean ?? point.value]);
+  const min = Math.min(...(values as number[]));
+  const max = Math.max(...(values as number[]));
+  const span = max - min || 1;
+  const width = 320;
+  const height = 120;
+  const step = points.length === 1 ? 0 : width / (points.length - 1);
+  const y = (value: number) => height - ((value - min) / span) * (height - 16) - 8;
+  const line = points.map((point, index) => `${index * step},${y(point.value as number)}`).join(" ");
+  const band = points
+    .filter((point) => point.baseline_mean !== null)
+    .map((point, index) => `${index * step},${y(point.baseline_mean as number)}`)
+    .join(" ");
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-      <div className="flex items-center justify-between">
-        <p className="text-xs uppercase tracking-wide text-slate-400">
-          NDTI / NDCI trend
-        </p>
-        <p className="text-xs text-slate-500">
-          Showing last {visible.length} of {history.length} records
-        </p>
-      </div>
-
-      <div className="mt-3 h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={visible}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-            <XAxis dataKey="date" stroke="#64748b" fontSize={12} />
-            <YAxis stroke="#64748b" fontSize={12} />
-            <Tooltip
-              contentStyle={{
-                background: "#0f172a",
-                border: "1px solid #1e293b",
-                borderRadius: 8,
-                fontSize: 12,
-              }}
-            />
-            <Line
-              type="monotone"
-              dataKey="ndti"
-              stroke="#3ac5ff"
-              strokeWidth={2}
-              dot={false}
-              name="NDTI"
-            />
-            <Line
-              type="monotone"
-              dataKey="ndci"
-              stroke="#f59e0b"
-              strokeWidth={2}
-              dot={false}
-              name="NDCI"
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
-      <div className="mt-4">
-        <label
-          htmlFor="temporal-range"
-          className="text-xs text-slate-400 flex items-center justify-between"
-        >
-          <span>Temporal window</span>
-          <span>{range}%</span>
-        </label>
-        <input
-          id="temporal-range"
-          type="range"
-          min={10}
-          max={100}
-          step={5}
-          value={range}
-          onChange={(e) => setRange(Number(e.target.value))}
-          className="w-full accent-aqua-500"
-        />
-      </div>
-    </div>
+    <figure className="chart">
+      <figcaption>
+        {series.indicator} · {series.zone_id}
+      </figcaption>
+      <svg viewBox={`0 0 ${width} ${height}`} role="img">
+        {band ? <polyline points={band} className="baseline" /> : null}
+        <polyline points={line} className="series" />
+      </svg>
+      <p className="muted">Line is the zone value. The second stroke is the seasonal baseline mean.</p>
+    </figure>
   );
 }

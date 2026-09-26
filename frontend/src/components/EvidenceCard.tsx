@@ -1,25 +1,44 @@
-import type { AnalysisResponse } from "../types/analysis";
+import type { EvidenceCard as Card } from "../api/client";
+import { ConfidenceBadge } from "./ConfidenceBadge";
 
-export function EvidenceCard({ analysis }: { analysis: AnalysisResponse }) {
+export function EvidenceCard({ card }: { card: Card | null }) {
+  if (!card) return <p className="muted">Select a zone to see why it was or was not flagged.</p>;
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-      <p className="text-xs uppercase tracking-wide text-slate-400">
-        Evidence
+    <article className="card">
+      <header>
+        <h3>{card.zone_name}</h3>
+        <ConfidenceBadge score={card.confidence} reasons={card.confidence_reasons} />
+      </header>
+      <p>
+        {card.date} · evidence {card.evidence_id}
       </p>
-      <dl className="mt-2 grid grid-cols-2 gap-y-2 text-sm">
-        <dt className="text-slate-500">Analysis ID</dt>
-        <dd className="text-right font-mono text-slate-200">
-          {analysis.analysis_id}
-        </dd>
-        <dt className="text-slate-500">Water body</dt>
-        <dd className="text-right text-slate-200">{analysis.water_body}</dd>
-        <dt className="text-slate-500">Date</dt>
-        <dd className="text-right text-slate-200">{analysis.date}</dd>
-        <dt className="text-slate-500">Segments detected</dt>
-        <dd className="text-right text-slate-200">
-          {analysis.geojson.features.length}
-        </dd>
-      </dl>
-    </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Indicator</th>
+            <th>Value</th>
+            <th>Baseline</th>
+            <th>Sigma</th>
+            <th>Crossed</th>
+          </tr>
+        </thead>
+        <tbody>
+          {card.comparisons.map((row) => (
+            <tr key={row.indicator}>
+              <td>{row.indicator}</td>
+              <td>{row.value.toFixed(3)}</td>
+              <td>
+                {row.baseline_mean.toFixed(3)} ± {row.baseline_std ?? "n/a"}
+              </td>
+              <td>{row.sigma === null ? "n/a" : row.sigma.toFixed(2)}</td>
+              <td>{row.crossed ? "yes" : "no"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p>Extent change: {card.extent_change_m2 === null ? "n/a" : `${card.extent_change_m2.toFixed(0)} m²`}</p>
+      <p>Contributing: {card.contributing_indicators.join(", ") || "none"}</p>
+      <p>Thresholds: {card.thresholds_crossed.join(", ") || "none crossed"}</p>
+    </article>
   );
 }
