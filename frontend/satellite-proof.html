@@ -304,18 +304,22 @@ async function fetchLocalities() {
         ${p.name} (${p.district})
       </option>`
     ).join('');
+
+    // Fetch satellite layers immediately with the selected locality coordinates
+    fetchSatelliteLayers();
   } catch (err) {
     console.warn('Locality points API unavailable:', err);
-    // Graceful fallback — keep placeholder
     const sel = document.getElementById('loc-select');
-    sel.innerHTML = `<option value="">Backend offline — locality points unavailable</option>`;
+    sel.innerHTML = `<option value="" data-lat="21.1292" data-lng="79.0394">Ambazari Lake (Default Sentinel-2)</option>`;
+    fetchSatelliteLayers();
   }
 }
 
 function onLocalityChange(sel) {
   const opt = sel.options[sel.selectedIndex];
-  const name = opt.getAttribute('data-name');
+  const name = opt ? opt.getAttribute('data-name') : null;
   if (name) console.log('Locality selected:', name);
+  reloadAll();
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -325,8 +329,20 @@ async function fetchSatelliteLayers() {
   const errBanner = document.getElementById('api-error');
   errBanner.style.display = 'none';
 
+  // Extract selected locality coordinates & date
+  const sel = document.getElementById('loc-select');
+  let lat = 21.1292, lng = 79.0394;
+  if (sel && sel.selectedIndex >= 0 && sel.options[sel.selectedIndex]) {
+    const opt = sel.options[sel.selectedIndex];
+    if (opt.dataset.lat && opt.dataset.lng) {
+      lat = parseFloat(opt.dataset.lat);
+      lng = parseFloat(opt.dataset.lng);
+    }
+  }
+  const dateInput = document.getElementById('scene-date').value || new Date().toISOString().slice(0, 10);
+
   try {
-    const res = await fetch(`${API_BASE}/api/satellite-layers`);
+    const res = await fetch(`${API_BASE}/api/satellite-layers?lat=${lat}&lng=${lng}&date=${dateInput}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
@@ -336,8 +352,9 @@ async function fetchSatelliteLayers() {
     renderMeta(data.scene_meta);
 
     // Update hero badge + status
-    document.getElementById('hero-layer-count').textContent = `${layersData.length} Thematic Layers Active`;
+    document.getElementById('hero-layer-count').textContent = `${layersData.length} Dynamic Layers Active`;
     document.getElementById('api-status-label').textContent = 'COPERNICUS ACTIVE';
+    document.getElementById('api-status-label').parentElement.style.color = 'var(--green)';
 
     // Enable reload button
     const btn = document.getElementById('reload-btn');
@@ -378,23 +395,26 @@ function renderCards(layers) {
   const grid = document.getElementById('tgrid');
   const skeleton = document.getElementById('skeleton-grid');
 
-  grid.innerHTML = layers.map(l => `
-    <div class="tc ${l.pulse ? 'pulse' : ''}" data-layer="${l.layer}" onclick="openModal('${l.key}')">
-      <div class="tc-head">
-        <div class="tc-label">
-          <span style="color:${l.dot_color}">&#9899;</span> ${l.short_title}
+  grid.innerHTML = layers.map(l => {
+    const fullImgUrl = l.image.startsWith('http') ? l.image : `${API_BASE}${l.image}`;
+    return `
+      <div class="tc ${l.pulse ? 'pulse' : ''}" data-layer="${l.layer}" onclick="openModal('${l.key}')">
+        <div class="tc-head">
+          <div class="tc-label">
+            <span style="color:${l.dot_color}">&#9899;</span> ${l.short_title}
+          </div>
+          <span class="sbadge ${l.severity_class}">${l.severity}</span>
         </div>
-        <span class="sbadge ${l.severity_class}">${l.severity}</span>
+        <div class="timg-wrap">
+          <img src="${fullImgUrl}" class="timg" alt="${l.title}" loading="lazy">
+        </div>
+        <div class="tc-foot">
+          <span class="tc-band">${l.band}</span>
+          <span class="tc-val" style="color:${l.summary_color}">${l.summary_value}</span>
+        </div>
       </div>
-      <div class="timg-wrap">
-        <img src="${l.image}" class="timg" alt="${l.title}" loading="lazy">
-      </div>
-      <div class="tc-foot">
-        <span class="tc-band">${l.band}</span>
-        <span class="tc-val" style="color:${l.summary_color}">${l.summary_value}</span>
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 
   skeleton.style.display = 'none';
   grid.style.display = 'grid';
@@ -415,10 +435,9 @@ function renderMeta(meta) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   6. Reload triggered by button
+   6. Reload triggered by button or selection change
    ───────────────────────────────────────────────────────────── */
 function reloadAll() {
-  // Skeleton flash
   document.getElementById('tgrid').style.display = 'none';
   document.getElementById('skeleton-grid').style.display = 'grid';
   document.getElementById('meta-strip').style.display = 'none';
@@ -445,8 +464,9 @@ function openModal(key) {
   if (!layer) return;
   modalLayer = layer;
 
+  const fullImgUrl = layer.image.startsWith('http') ? layer.image : `${API_BASE}${layer.image}`;
   document.getElementById('modal-title').textContent       = layer.title;
-  document.getElementById('modal-img').src                 = layer.image;
+  document.getElementById('modal-img').src                 = fullImgUrl;
   document.getElementById('modal-img').alt                 = layer.title;
   document.getElementById('modal-status').textContent      = layer.status;
   document.getElementById('modal-status').style.color      = layer.status_color;
@@ -478,9 +498,10 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal()
    9. Export — downloads the layer image as proof artifact
    ───────────────────────────────────────────────────────────── */
 function exportLayer(layer) {
+  const fullImgUrl = layer.image.startsWith('http') ? layer.image : `${API_BASE}${layer.image}`;
   const a = document.createElement('a');
-  a.href = layer.image;
-  a.download = `aquaradar_${layer.key}_satellite_proof.jpg`;
+  a.href = fullImgUrl;
+  a.download = `aquaradar_${layer.key}_satellite_proof.png`;
   a.click();
 }
 </script>
