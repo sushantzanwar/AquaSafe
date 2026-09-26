@@ -1,21 +1,24 @@
 import os
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
 
 load_dotenv()
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
-from langchain_core.output_parsers import StrOutputParser
 
-# Make sure the user has their GEMINI_API_KEY set in their environment variables
-# os.environ["GEMINI_API_KEY"] = "your_api_key_here"
+try:
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    from langchain_core.prompts import ChatPromptTemplate
+    from langchain_core.runnables import RunnablePassthrough
+    from langchain_core.output_parsers import StrOutputParser
+    
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-flash-latest",
+        temperature=0.1,
+        max_tokens=500
+    )
+    HAS_LANGCHAIN = True
+except Exception:
+    HAS_LANGCHAIN = False
+    llm = None
 
-# 1. Initialize the Gemini 1.5 Flash model
-llm = ChatGoogleGenerativeAI(
-    model="gemini-flash-latest",
-    temperature=0.1, # Low temperature to prevent hallucinations
-    max_tokens=500   # Keep responses concise and token usage low
-)
 
 # 2. Create a strict prompt template to force the model to ground its answers
 PROMPT_TEMPLATE = """
@@ -41,17 +44,16 @@ USER QUESTION: {question}
 EXPLANATION:
 """
 
-prompt = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
-
 def generate_explanation(live_json_data: dict, scientific_context: str, user_question: str) -> str:
     """
     Generates an explanation using the Gemini model, grounding it in the provided live data and context.
     """
+    if not HAS_LANGCHAIN or llm is None:
+        return f"AquaWatch Analysis for {live_json_data.get('water_body', 'Water Body')}: Indicators (NDWI: {live_json_data.get('indicators',{}).get('ndwi')}, NDTI: {live_json_data.get('indicators',{}).get('ndti')}, NDCI: {live_json_data.get('indicators',{}).get('ndci')}). Scientific context: {scientific_context}"
     
-    # We create a simple chain: Prompt -> LLM -> String Output
+    prompt = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
     chain = prompt | llm | StrOutputParser()
     
-    # Execute the chain
     response = chain.invoke({
         "live_data": str(live_json_data),
         "context": scientific_context,
@@ -59,6 +61,7 @@ def generate_explanation(live_json_data: dict, scientific_context: str, user_que
     })
     
     return response
+
 
 # For testing locally if you run this script directly:
 if __name__ == "__main__":

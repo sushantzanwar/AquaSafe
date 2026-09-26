@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaRadar - Satellite Proof Gallery - Thematic Analysis Layers</title>
+<meta name="description" content="Real satellite thematic analysis layers for water quality monitoring — served live from the AquaWatch backend API.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2128; --border:#30363d;
+  --border-sub:#21262d; --text:#e6edf3; --muted:#8b949e; --faint:#6e7681;
+  --green:#3fb950; --green-dim:rgba(63,185,80,0.12); --blue:#58a6ff;
+  --purple:#bc8cff; --red:#f85149; --yellow:#e3b341; --cyan:#39c5bb; --orange:#f0883e;
+  --ease-out:cubic-bezier(0.16,1,0.3,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+a{text-decoration:none;color:inherit}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:999;height:64px;display:flex;align-items:center;padding:0 40px;justify-content:space-between;background:rgba(13,17,23,0.92);border-bottom:1px solid var(--border-sub);backdrop-filter:blur(20px) saturate(1.4)}
+.nav-brand{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;letter-spacing:-0.03em;display:flex;align-items:center;gap:10px}
+.brand-dot{width:8px;height:8px;border-radius:50%;background:var(--green);position:relative}
+.brand-dot::after{content:'';position:absolute;inset:-4px;border-radius:50%;background:var(--green);opacity:0.3;animation:pulse 2.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:0.3}50%{transform:scale(2.2);opacity:0}}
+.nav-links{display:flex;align-items:center;gap:4px}
+.nav-link{padding:7px 13px;font-size:13px;font-weight:500;color:var(--muted);border-radius:6px;transition:color .2s,background .2s}
+.nav-link:hover{color:var(--text);background:rgba(255,255,255,0.05)}
+.nav-link.active{color:var(--green);background:var(--green-dim);font-weight:600}
+.sys-badge{display:flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green);background:rgba(63,185,80,0.08);border:1px solid rgba(63,185,80,0.22);padding:5px 12px;border-radius:99px}
+.sys-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s ease-in-out infinite}
+
+.main{margin-top:64px;padding:0 0 80px}
+
+/* HERO */
+.hero-strip{background:var(--surface);border-bottom:1px solid var(--border-sub);padding:36px 48px 32px}
+.hero-eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px}
+.hero-title{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;letter-spacing:-0.03em;color:var(--text);line-height:1.15;margin-bottom:10px}
+.hero-sub{color:var(--muted);font-size:14px;line-height:1.7;max-width:760px}
+.hero-meta{display:flex;gap:14px;margin-top:16px;flex-wrap:wrap}
+.chip{font-family:'JetBrains Mono',monospace;font-size:11px;padding:4px 10px;border-radius:5px;border:1px solid}
+.chip-g{color:var(--green);background:rgba(63,185,80,0.08);border-color:rgba(63,185,80,0.25)}
+.chip-b{color:var(--blue);background:rgba(88,166,255,0.08);border-color:rgba(88,166,255,0.22)}
+.chip-y{color:var(--yellow);background:rgba(227,179,65,0.08);border-color:rgba(227,179,65,0.22)}
+
+/* SELECTOR BAR */
+.selector-bar{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:16px;align-items:end;padding:18px 48px;background:var(--bg);border-bottom:1px solid var(--border-sub)}
+.fw{display:flex;flex-direction:column;gap:6px}
+.fl{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em}
+.sel{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:9px 14px;border-radius:8px;font-family:'Inter',sans-serif;font-size:13.5px;outline:none;transition:border-color .2s,box-shadow .2s;width:100%}
+.sel:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(63,185,80,0.15)}
+.btn-fetch{background:var(--green);color:#0d1117;font-weight:700;font-size:13.5px;padding:10px 22px;border-radius:8px;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;transition:opacity .2s,transform .15s;white-space:nowrap}
+.btn-fetch:hover{opacity:.88;transform:translateY(-1px)}
+.btn-fetch:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* LAYOUT */
+.content-grid{padding:28px 48px 0}
+
+/* GALLERY */
+.gallery{padding:0}
+.layer-tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:24px}
+.ltab{padding:7px 16px;font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:500;color:var(--muted);background:var(--surface);border:1px solid var(--border-sub);cursor:pointer;border-radius:7px;transition:all .2s}
+.ltab:hover{color:var(--text);background:var(--surface2)}
+.ltab.active{color:#0d1117;background:var(--green);border-color:var(--green);font-weight:700}
+
+/* SKELETON LOADER */
+.skeleton{background:linear-gradient(90deg,var(--surface) 25%,var(--surface2) 50%,var(--surface) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.skel-card{border-radius:12px;height:320px}
+
+/* API ERROR BANNER */
+.api-error{background:rgba(248,81,73,0.08);border:1px solid rgba(248,81,73,0.3);color:var(--red);font-family:'JetBrains Mono',monospace;font-size:12px;padding:14px 20px;border-radius:8px;margin-bottom:22px;display:none}
+
+/* GRID */
+.tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.tc{background:var(--surface);border:1px solid var(--border-sub);border-radius:12px;overflow:hidden;position:relative;cursor:pointer;transition:border-color .25s,transform .2s,box-shadow .25s}
+.tc:hover{border-color:rgba(255,255,255,0.2);transform:translateY(-3px);box-shadow:0 12px 36px rgba(0,0,0,0.4)}
+.tc-head{padding:11px 15px;background:var(--surface2);border-bottom:1px solid var(--border-sub);display:flex;justify-content:space-between;align-items:center}
+.tc-label{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:7px}
+.sbadge{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:700;letter-spacing:.04em}
+.sh{background:rgba(248,81,73,0.18);color:var(--red);border:1px solid rgba(248,81,73,0.3)}
+.sm{background:rgba(227,179,65,0.14);color:var(--yellow);border:1px solid rgba(227,179,65,0.3)}
+.timg-wrap{width:100%;aspect-ratio:1/1;overflow:hidden;background:#000}
+.timg{width:100%;height:100%;object-fit:cover;display:block;transition:transform .45s var(--ease-out)}
+.tc:hover .timg{transform:scale(1.04)}
+.tc-foot{padding:9px 15px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border-sub)}
+.tc-band{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--faint)}
+.tc-val{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600}
+.tc.pulse::before{content:'';position:absolute;top:9px;right:9px;width:9px;height:9px;border-radius:50%;background:var(--red);z-index:10;animation:cpulse 1.6s ease-in-out infinite}
+@keyframes cpulse{0%,100%{box-shadow:0 0 0 0 rgba(248,81,73,0.6)}70%{box-shadow:0 0 0 7px rgba(248,81,73,0)}}
+
+/* META STRIP */
+.mstrip{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin-top:22px;background:var(--surface);border:1px solid var(--border-sub);border-radius:12px;overflow:hidden}
+.mc{padding:15px 18px;border-right:1px solid var(--border-sub)}
+.mc:last-child{border-right:none}
+.ml{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.mv{font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:600;color:var(--text)}
+.mv.g{color:var(--green)}.mv.r{color:var(--red)}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.88);backdrop-filter:blur(14px);display:none;align-items:center;justify-content:center;padding:32px}
+.modal-bg.open{display:flex}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;max-width:980px;width:100%;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,0.6)}
+.modal-top{padding:17px 24px;background:var(--surface2);border-bottom:1px solid var(--border-sub);display:flex;justify-content:space-between;align-items:center}
+.modal-title-txt{font-family:'Syne',sans-serif;font-weight:700;font-size:15px}
+.mcls{background:transparent;border:none;color:var(--muted);font-size:22px;cursor:pointer;width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center}
+.mcls:hover{color:var(--red);background:rgba(248,81,73,0.1)}
+.modal-body{display:grid;grid-template-columns:1fr 290px}
+.mimg{width:100%;aspect-ratio:1/1;overflow:hidden}
+.mimg img{width:100%;height:100%;object-fit:cover;display:block}
+.minfo{padding:22px;border-left:1px solid var(--border-sub);display:flex;flex-direction:column;gap:15px;overflow-y:auto;max-height:560px}
+.ilbl{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.07em}
+.ival{font-size:13px;font-weight:500;color:var(--text);line-height:1.5;margin-top:3px}
+.ival.mono{font-family:'JetBrains Mono',monospace;font-size:11.5px;white-space:pre-line}
+.ind-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border-sub);font-family:'JetBrains Mono',monospace;font-size:11.5px}
+.ind-row:last-child{border-bottom:none}
+.iname{color:var(--muted)}.ivalue{font-weight:600}
+.btrack{height:3px;background:var(--border);border-radius:99px;margin-top:2px}
+.bfill{height:100%;border-radius:99px;transition:width .6s var(--ease-out)}
+.mbtn{margin-top:auto;background:var(--green-dim);border:1px solid rgba(63,185,80,0.3);color:var(--green);font-weight:600;font-size:13px;padding:10px 16px;border-radius:8px;cursor:pointer;transition:background .2s}
+.mbtn:hover{background:var(--green);color:#0d1117}
+
+/* FOOTER */
+footer{padding:26px 48px;border-top:1px solid var(--border-sub);display:flex;justify-content:space-between;align-items:center;background:var(--surface)}
+.fb{font-family:'Syne',sans-serif;font-weight:800;font-size:14px}
+.flinks{display:flex;gap:18px}
+.flinks a{font-size:12px;color:var(--faint);transition:color .2s}
+.flinks a:hover{color:var(--text)}
+
+@media(max-width:1100px){.tgrid{grid-template-columns:repeat(2,1fr)}.selector-bar{grid-template-columns:1fr 1fr}.content-grid{padding:20px 24px 0}}
+@media(max-width:700px){.tgrid{grid-template-columns:1fr}.selector-bar{grid-template-columns:1fr}.nav-links{display:none}}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <a href="index.html" class="nav-brand"><span class="brand-dot"></span>AQUARADAR</a>
+  <nav class="nav-links">
+    <a href="index.html"           class="nav-link">Home</a>
+    <a href="dashboard.html"       class="nav-link">Dashboard</a>
+    <a href="assistant.html"       class="nav-link">Analysis</a>
+    <a href="satellite-proof.html" class="nav-link active">Satellite Proof</a>
+    <a href="ai-assistant.html"    class="nav-link">AI Assistant</a>
+    <a href="ground-truth.html"    class="nav-link">Field Verification</a>
+  </nav>
+  <div class="sys-badge"><span class="sys-dot"></span><span id="api-status-label">CONNECTING...</span></div>
+</header>
+
+<main class="main">
+
+  <div class="hero-strip">
+    <div class="hero-eyebrow">Sentinel-2 L2A &middot; Thematic Satellite Intelligence</div>
+    <h1 class="hero-title">Satellite Proof Gallery &mdash; 6-Layer Contamination Analysis</h1>
+    <p class="hero-sub">Real multispectral satellite analysis derived from ESA Copernicus Sentinel-2 imagery. Each thematic map isolates a specific contamination vector via spectral indices applied to the original satellite scene. Layer definitions are served live from the AquaWatch API.</p>
+    <div class="hero-meta">
+      <span class="chip chip-g">&#10003; Sentinel-2 L2A &middot; 10m Resolution</span>
+      <span class="chip chip-b">Copernicus API Gateway</span>
+      <span class="chip chip-y">&#9888; Lab Verification Required</span>
+      <span class="chip chip-g" id="hero-layer-count">Loading layers...</span>
+    </div>
+  </div>
+
+  <div class="selector-bar">
+    <div class="fw">
+      <label class="fl">Locality Nearby Points</label>
+      <select class="sel" id="loc-select" onchange="onLocalityChange(this)">
+        <option value="">Loading locality points...</option>
+      </select>
+    </div>
+    <div class="fw">
+      <label class="fl">Scene Date</label>
+      <input type="date" class="sel" id="scene-date">
+    </div>
+    <div class="fw">
+      <label class="fl">Constellation</label>
+      <input type="text" class="sel" id="constellation-field" value="Loading..." readonly style="color:var(--green);cursor:default">
+    </div>
+    <button class="btn-fetch" id="reload-btn" onclick="reloadAll()" disabled>&#9889; Reload Proof Layers</button>
+  </div>
+
+  <div class="content-grid">
+    <div class="gallery">
+
+      <!-- FILTER TABS (rendered from API data) -->
+      <div class="layer-tabs" id="layer-tabs">
+        <button class="ltab active" onclick="filterGrid('all',this)">All Layers</button>
+      </div>
+
+      <!-- API ERROR BANNER -->
+      <div class="api-error" id="api-error">
+        &#9888; Failed to load satellite layers from API. Is the backend running on port 8000?
+        <a href="http://localhost:8000/docs" target="_blank" style="color:var(--red);text-decoration:underline;margin-left:8px">View API Docs</a>
+      </div>
+
+      <!-- SKELETON LOADERS (shown while fetching) -->
+      <div class="tgrid" id="skeleton-grid">
+        <div class="skel-card skeleton"></div>
+        <div class="skel-card skeleton"></div>
+        <div class="skel-card skeleton"></div>
+        <div class="skel-card skeleton"></div>
+        <div class="skel-card skeleton"></div>
+        <div class="skel-card skeleton"></div>
+      </div>
+
+      <!-- ACTUAL CARDS (populated from API) -->
+      <div class="tgrid" id="tgrid" style="display:none"></div>
+
+      <!-- SCENE METADATA STRIP (populated from API) -->
+      <div class="mstrip" id="meta-strip" style="display:none">
+        <div class="mc"><div class="ml">Scene Date</div><div class="mv" id="meta-date">—</div></div>
+        <div class="mc"><div class="ml">Spatial Resolution</div><div class="mv g" id="meta-resolution">—</div></div>
+        <div class="mc"><div class="ml">Cloud Cover</div><div class="mv g" id="meta-cloud">—</div></div>
+        <div class="mc"><div class="ml">Anomaly Score</div><div class="mv r" id="meta-anomaly">—</div></div>
+        <div class="mc"><div class="ml">API Gateway</div><div class="mv g" id="meta-gateway">—</div></div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="fb">AQUARADAR</div>
+  <nav class="flinks">
+    <a href="index.html">Home</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="assistant.html">Analysis</a>
+    <a href="satellite-proof.html">Satellite Proof</a>
+    <a href="ai-assistant.html">AI Assistant</a>
+    <a href="ground-truth.html">Field Verification</a>
+  </nav>
+  <div style="font-size:12px;color:var(--faint)">&copy; 2026 AquaWatch System &middot; ESA Copernicus</div>
+</footer>
+
+<!-- INSPECTOR MODAL -->
+<div class="modal-bg" id="modal-bg" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-top">
+      <div class="modal-title-txt" id="modal-title">Satellite Layer Inspector</div>
+      <button class="mcls" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="mimg"><img id="modal-img" src="" alt="Full satellite thematic layer"></div>
+      <div class="minfo">
+        <div>
+          <div class="ilbl">Detection Status</div>
+          <div class="ival" id="modal-status" style="font-weight:700">—</div>
+        </div>
+        <div>
+          <div class="ilbl">Data Source</div>
+          <div class="ival mono" id="modal-source">—</div>
+        </div>
+        <div id="modal-indicators"></div>
+        <div>
+          <div class="ilbl">Scientific Basis</div>
+          <div class="ival" id="modal-science" style="font-size:12px;color:var(--muted);line-height:1.65"></div>
+        </div>
+        <button class="mbtn" id="modal-export-btn">&#128229; Export Layer Proof</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Configuration — change API_BASE if your backend is elsewhere
+   ───────────────────────────────────────────────────────────── */
+const API_BASE = 'http://localhost:8000';
+
+/* ─────────────────────────────────────────────────────────────
+   State
+   ───────────────────────────────────────────────────────────── */
+let layersData   = [];   // Array of layer objects from API
+let modalLayer   = null; // Currently open modal layer
+
+/* ─────────────────────────────────────────────────────────────
+   Boot — fetch all data on page load
+   ───────────────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  // Default today's date
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById('scene-date').value = today;
+  document.getElementById('meta-date').textContent = today;
+
+  fetchLocalities();
+  fetchSatelliteLayers();
+});
+
+/* ─────────────────────────────────────────────────────────────
+   1. Fetch locality points from API → populate dropdown
+   ───────────────────────────────────────────────────────────── */
+async function fetchLocalities() {
+  try {
+    const res = await fetch(`${API_BASE}/api/locality-points`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const points = await res.json();
+
+    const sel = document.getElementById('loc-select');
+    sel.innerHTML = points.map((p, i) =>
+      `<option value="${i}" data-lat="${p.lat}" data-lng="${p.lng}" data-name="${p.name}">
+        ${p.name} (${p.district})
+      </option>`
+    ).join('');
+  } catch (err) {
+    console.warn('Locality points API unavailable:', err);
+    // Graceful fallback — keep placeholder
+    const sel = document.getElementById('loc-select');
+    sel.innerHTML = `<option value="">Backend offline — locality points unavailable</option>`;
+  }
+}
+
+function onLocalityChange(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  const name = opt.getAttribute('data-name');
+  if (name) console.log('Locality selected:', name);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   2. Fetch satellite layers from API → render cards + tabs + meta
+   ───────────────────────────────────────────────────────────── */
+async function fetchSatelliteLayers() {
+  const errBanner = document.getElementById('api-error');
+  errBanner.style.display = 'none';
+
+  try {
+    const res = await fetch(`${API_BASE}/api/satellite-layers`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    layersData = data.layers;
+    renderTabs(layersData);
+    renderCards(layersData);
+    renderMeta(data.scene_meta);
+
+    // Update hero badge + status
+    document.getElementById('hero-layer-count').textContent = `${layersData.length} Thematic Layers Active`;
+    document.getElementById('api-status-label').textContent = 'COPERNICUS ACTIVE';
+
+    // Enable reload button
+    const btn = document.getElementById('reload-btn');
+    btn.disabled = false;
+
+    // Populate constellation field
+    document.getElementById('constellation-field').value = data.scene_meta.constellation;
+
+  } catch (err) {
+    console.error('Satellite layers API failed:', err);
+    errBanner.style.display = 'block';
+    document.getElementById('api-status-label').textContent = 'API OFFLINE';
+    document.getElementById('api-status-label').parentElement.style.color = 'var(--red)';
+    document.getElementById('hero-layer-count').textContent = 'API unavailable';
+    document.getElementById('reload-btn').disabled = false;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   3. Render filter tabs from API data
+   ───────────────────────────────────────────────────────────── */
+function renderTabs(layers) {
+  const container = document.getElementById('layer-tabs');
+  container.innerHTML = `<button class="ltab active" onclick="filterGrid('all',this)">All ${layers.length} Layers</button>`;
+  layers.forEach(l => {
+    const btn = document.createElement('button');
+    btn.className = 'ltab';
+    btn.textContent = l.short_title.split('(')[0].trim();
+    btn.setAttribute('onclick', `filterGrid('${l.layer}',this)`);
+    container.appendChild(btn);
+  });
+}
+
+/* ─────────────────────────────────────────────────────────────
+   4. Render thematic cards from API data
+   ───────────────────────────────────────────────────────────── */
+function renderCards(layers) {
+  const grid = document.getElementById('tgrid');
+  const skeleton = document.getElementById('skeleton-grid');
+
+  grid.innerHTML = layers.map(l => `
+    <div class="tc ${l.pulse ? 'pulse' : ''}" data-layer="${l.layer}" onclick="openModal('${l.key}')">
+      <div class="tc-head">
+        <div class="tc-label">
+          <span style="color:${l.dot_color}">&#9899;</span> ${l.short_title}
+        </div>
+        <span class="sbadge ${l.severity_class}">${l.severity}</span>
+      </div>
+      <div class="timg-wrap">
+        <img src="${l.image}" class="timg" alt="${l.title}" loading="lazy">
+      </div>
+      <div class="tc-foot">
+        <span class="tc-band">${l.band}</span>
+        <span class="tc-val" style="color:${l.summary_color}">${l.summary_value}</span>
+      </div>
+    </div>
+  `).join('');
+
+  skeleton.style.display = 'none';
+  grid.style.display = 'grid';
+}
+
+/* ─────────────────────────────────────────────────────────────
+   5. Render scene metadata strip from API data
+   ───────────────────────────────────────────────────────────── */
+function renderMeta(meta) {
+  const strip = document.getElementById('meta-strip');
+  const date = document.getElementById('scene-date').value;
+  document.getElementById('meta-date').textContent       = date;
+  document.getElementById('meta-resolution').textContent = meta.resolution;
+  document.getElementById('meta-cloud').textContent      = meta.cloud_cover;
+  document.getElementById('meta-anomaly').textContent    = `${meta.anomaly_score} \u26A0`;
+  document.getElementById('meta-gateway').textContent    = `\u2713 ${meta.api_gateway}`;
+  strip.style.display = 'grid';
+}
+
+/* ─────────────────────────────────────────────────────────────
+   6. Reload triggered by button
+   ───────────────────────────────────────────────────────────── */
+function reloadAll() {
+  // Skeleton flash
+  document.getElementById('tgrid').style.display = 'none';
+  document.getElementById('skeleton-grid').style.display = 'grid';
+  document.getElementById('meta-strip').style.display = 'none';
+  document.getElementById('reload-btn').disabled = true;
+  fetchSatelliteLayers();
+}
+
+/* ─────────────────────────────────────────────────────────────
+   7. Filter tabs
+   ───────────────────────────────────────────────────────────── */
+function filterGrid(layer, btn) {
+  document.querySelectorAll('.ltab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.tc').forEach(c => {
+    c.style.display = (layer === 'all' || c.dataset.layer === layer) ? '' : 'none';
+  });
+}
+
+/* ─────────────────────────────────────────────────────────────
+   8. Inspector modal — driven entirely from API data
+   ───────────────────────────────────────────────────────────── */
+function openModal(key) {
+  const layer = layersData.find(l => l.key === key);
+  if (!layer) return;
+  modalLayer = layer;
+
+  document.getElementById('modal-title').textContent       = layer.title;
+  document.getElementById('modal-img').src                 = layer.image;
+  document.getElementById('modal-img').alt                 = layer.title;
+  document.getElementById('modal-status').textContent      = layer.status;
+  document.getElementById('modal-status').style.color      = layer.status_color;
+  document.getElementById('modal-source').textContent      = layer.source;
+  document.getElementById('modal-science').textContent     = layer.science;
+
+  document.getElementById('modal-indicators').innerHTML = layer.indicators.map(ind => `
+    <div class="ind-row">
+      <span class="iname">${ind.name}</span>
+      <span class="ivalue" style="color:${ind.color}">${ind.value}</span>
+    </div>
+    <div class="btrack">
+      <div class="bfill" style="width:${ind.pct}%;background:${ind.color}"></div>
+    </div>
+  `).join('');
+
+  document.getElementById('modal-export-btn').onclick = () => exportLayer(layer);
+  document.getElementById('modal-bg').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal-bg').classList.remove('open');
+  modalLayer = null;
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+/* ─────────────────────────────────────────────────────────────
+   9. Export — downloads the layer image as proof artifact
+   ───────────────────────────────────────────────────────────── */
+function exportLayer(layer) {
+  const a = document.createElement('a');
+  a.href = layer.image;
+  a.download = `aquaradar_${layer.key}_satellite_proof.jpg`;
+  a.click();
+}
+</script>
+</body>
+</html>

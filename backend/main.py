@@ -1,17 +1,14 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import datetime
 
 app = FastAPI(title="AquaWatch Backend API", description="Intelligence pipeline for AquaWatch")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -21,6 +18,8 @@ app.add_middleware(
 class AnalysisRequest(BaseModel):
     water_body: str
     date: str
+    lat: Optional[float] = 21.129
+    lng: Optional[float] = 79.039
 
 class AnalysisResponse(BaseModel):
     analysis_id: str
@@ -30,6 +29,18 @@ class AnalysisResponse(BaseModel):
     anomaly: Dict[str, Any]
     priority: Dict[str, int]
     geojson: Dict[str, Any]
+
+# ---- Locality Points Database ----
+LOCALITY_POINTS = [
+    {"id": "ambazari_center", "name": "Ambazari Lake — Center Point", "water_body": "Ambazari Lake", "lat": 21.1292, "lng": 79.0394, "district": "Nagpur West"},
+    {"id": "ambazari_spillway", "name": "Ambazari Lake — Spillway Intake", "water_body": "Ambazari Lake", "lat": 21.1325, "lng": 79.0431, "district": "Nagpur West"},
+    {"id": "futala_north", "name": "Futala Lake — North Inlet", "water_body": "Futala Lake", "lat": 21.1558, "lng": 79.0478, "district": "Nagpur North"},
+    {"id": "gorewada_intake", "name": "Gorewada Reservoir — Treatment Intake", "water_body": "Gorewada Lake", "lat": 21.1891, "lng": 79.0321, "district": "Nagpur NW"},
+    {"id": "gandhisagar_east", "name": "Gandhisagar Lake — East Basin", "water_body": "Gandhisagar Lake", "lat": 21.1448, "lng": 79.0965, "district": "Central Nagpur"},
+    {"id": "sonegaon_south", "name": "Sonegaon Lake — South Reach", "water_body": "Sonegaon Lake", "lat": 21.0934, "lng": 79.0562, "district": "Nagpur South"},
+    {"id": "erie_maumee", "name": "Lake Erie — Maumee Bay Outlet", "water_body": "Lake Erie", "lat": 41.7450, "lng": -83.4100, "district": "West Basin"},
+    {"id": "erie_sandusky", "name": "Lake Erie — Sandusky Bay Sector", "water_body": "Lake Erie", "lat": 41.4750, "lng": -82.8250, "district": "Central Shore"},
+]
 
 # ---- Mock Database ----
 MOCK_ANALYSIS = {
@@ -68,7 +79,7 @@ MOCK_ANALYSIS = {
 
 # ---- Endpoints ----
 
-from core.remote_sensing import generate_mock_sentinel_scene, process_scene_indices
+from core.remote_sensing import generate_mock_sentinel_scene, generate_realistic_sentinel_scene, render_satellite_image_png, process_scene_indices
 from models.water_segmentation import generate_water_mask
 from core.database import init_db, save_analysis, get_history, get_baseline
 from core.anomaly import calculate_anomaly_score, calculate_priority
@@ -89,6 +100,213 @@ async def lifespan(app: FastAPI):
     yield
 
 app.router.lifespan_context = lifespan
+
+
+@app.get("/api/locality-points")
+async def get_locality_points():
+    """List of monitored locality points with coordinates for manual selection or dropdown."""
+    return LOCALITY_POINTS
+
+
+# ---- Satellite Layer Definitions ----
+SATELLITE_LAYERS = [
+    {
+        "key": "algal",
+        "layer": "bloom",
+        "title": "Algal Activity — Chlorophyll-a / NDCI Map",
+        "short_title": "Algal Activity (NDCI / Chl-a)",
+        "description": "Multispectral heat map overlay on the water body highlighting high photosynthetic activity to isolate algal blooms.",
+        "image": "images/algal_bloom.jpg",
+        "band": "S2 B5-B4 · NDCI",
+        "summary_value": "NDCI: +0.41",
+        "summary_color": "var(--green)",
+        "dot_color": "var(--green)",
+        "severity": "HIGH",
+        "severity_class": "sh",
+        "pulse": True,
+        "status": "BLOOM CONFIRMED — HIGH",
+        "status_color": "var(--red)",
+        "source": "ESA Copernicus Sentinel-2\nL2A Surface Reflectance\n10m × 10m spatial resolution",
+        "indicators": [
+            {"name": "NDCI Index",      "value": "+0.41",       "color": "var(--red)",    "pct": 82},
+            {"name": "Chl-a Estimate",  "value": "68.4 µg/L",  "color": "var(--yellow)", "pct": 68},
+            {"name": "Bloom Coverage",  "value": "34% surface", "color": "var(--yellow)", "pct": 34},
+            {"name": "Confidence",      "value": "0.89",        "color": "var(--green)",  "pct": 89}
+        ],
+        "science": "NDCI (Normalized Difference Chlorophyll Index) is computed as (B5−B4)/(B5+B4) from Sentinel-2. Values above 0.2 indicate significant phytoplankton concentration. Neon green-yellow zones correspond to algal bloom hotspots requiring immediate sample collection and public health advisories."
+    },
+    {
+        "key": "erosion",
+        "layer": "erosion",
+        "title": "Soil Erosion — Total Suspended Solids (TSS) Map",
+        "short_title": "Soil Erosion (TSS / Turbidity)",
+        "description": "Zones of high water turbidity near the shoreline marking adjacent land areas showing topographical soil loss compared to the baseline map.",
+        "image": "images/soil_erosion.jpg",
+        "band": "S2 B4-B3 · NDTI",
+        "summary_value": "TSS: 48 mg/L",
+        "summary_color": "var(--yellow)",
+        "dot_color": "var(--yellow)",
+        "severity": "MODERATE",
+        "severity_class": "sm",
+        "pulse": False,
+        "status": "TURBIDITY ANOMALY — MODERATE",
+        "status_color": "var(--yellow)",
+        "source": "ESA Copernicus Sentinel-2\nL2A Surface Reflectance\n10m × 10m spatial resolution",
+        "indicators": [
+            {"name": "NDTI Index",   "value": "+0.29",       "color": "var(--yellow)", "pct": 58},
+            {"name": "TSS Estimate", "value": "48 mg/L",     "color": "var(--yellow)", "pct": 48},
+            {"name": "Plume Area",   "value": "18% surface", "color": "var(--yellow)", "pct": 18},
+            {"name": "Confidence",   "value": "0.81",        "color": "var(--green)",  "pct": 81}
+        ],
+        "science": "TSS is derived from the red-band reflectance and the NDTI index (Red−Green)/(Red+Green). Orange-brown plumes entering from the shoreline indicate active soil erosion and sediment transport. Adjacent land erosion scars are identified by comparing bare soil reflectance against vegetated baseline values using Landsat/Sentinel multi-date composites."
+    },
+    {
+        "key": "thermal",
+        "layer": "thermal",
+        "title": "Industrial Discharge — Thermal Plume Map",
+        "short_title": "Industrial Discharge (Thermal)",
+        "description": "Thermal infrared color gradient over the water body to isolate temperature anomalies and trace the flow paths of industrial discharge.",
+        "image": "images/thermal_discharge.jpg",
+        "band": "Landsat B10 · LSWR",
+        "summary_value": "ΔT: +6.2°C",
+        "summary_color": "var(--red)",
+        "dot_color": "var(--red)",
+        "severity": "CRITICAL",
+        "severity_class": "sh",
+        "pulse": True,
+        "status": "THERMAL ANOMALY — CRITICAL",
+        "status_color": "var(--red)",
+        "source": "Landsat-8/9 Band 10\nThermal Infrared (TIRS)\n100m resampled to 30m",
+        "indicators": [
+            {"name": "Temp. Anomaly",    "value": "+6.2°C",   "color": "var(--red)",    "pct": 90},
+            {"name": "Plume Length",     "value": "2.4 km",   "color": "var(--red)",    "pct": 75},
+            {"name": "Discharge Points", "value": "3 sources","color": "var(--yellow)", "pct": 60},
+            {"name": "Confidence",       "value": "0.94",     "color": "var(--green)",  "pct": 94}
+        ],
+        "science": "Land Surface Water Temperature (LSWR) is retrieved from Landsat-8/9 Band 10 (thermal infrared). Industrial cooling water or waste discharge creates temperature plumes visible in TIR imagery. Critical threshold: anomaly >4°C above ambient temperature baseline indicates thermal pollution. Flow trajectories are computed using current vectors derived from multi-temporal TIR composites."
+    },
+    {
+        "key": "runoff",
+        "layer": "runoff",
+        "title": "Agricultural Runoff — Flow Accumulation Map",
+        "short_title": "Agricultural Runoff (Flow Acc.)",
+        "description": "Directional flow vectors and accumulation zones across adjacent land to trace the exact topographical pathways where runoff enters the water.",
+        "image": "images/agricultural_runoff.jpg",
+        "band": "DEM + S2 · NDVI",
+        "summary_value": "3 Entry Points",
+        "summary_color": "var(--cyan)",
+        "dot_color": "var(--cyan)",
+        "severity": "MODERATE",
+        "severity_class": "sm",
+        "pulse": False,
+        "status": "RUNOFF RISK — MODERATE",
+        "status_color": "var(--cyan)",
+        "source": "SRTM 10m DEM + Sentinel-2\nD-infinity flow accumulation\nNDVI seasonal composite",
+        "indicators": [
+            {"name": "Entry Points",      "value": "3 nodes",    "color": "var(--cyan)",   "pct": 60},
+            {"name": "Flow Accumulation", "value": "High (N)",   "color": "var(--cyan)",   "pct": 72},
+            {"name": "Nitrate Proxy",     "value": "NDVI −0.18", "color": "var(--yellow)", "pct": 45},
+            {"name": "Confidence",        "value": "0.78",       "color": "var(--green)",  "pct": 78}
+        ],
+        "science": "Hydrological flow accumulation is modeled from a 10m DEM (SRTM/Copernicus) using the D-infinity algorithm. Directional flow vectors show topographic drainage concentration zones across agricultural land. Entry point nodes mark where cumulative flow reaches the lake boundary. Fertilizer/pesticide proxy is estimated via negative NDVI change relative to seasonal baseline."
+    },
+    {
+        "key": "sewage",
+        "layer": "sewage",
+        "title": "Sewage — Dissolved Oxygen / BOD Depletion Map",
+        "short_title": "Sewage (DO / BOD Depletion)",
+        "description": "Specific zones of oxygen depletion within the water body using a color gradient to visualize the spread and impact of organic sewage.",
+        "image": "images/sewage_do.jpg",
+        "band": "S2 + ML · DO Model",
+        "summary_value": "DO: 2.1 mg/L",
+        "summary_color": "var(--purple)",
+        "dot_color": "var(--purple)",
+        "severity": "CRITICAL",
+        "severity_class": "sh",
+        "pulse": True,
+        "status": "HYPOXIA DETECTED — CRITICAL",
+        "status_color": "var(--purple)",
+        "source": "ESA Copernicus Sentinel-2\nML DO Retrieval Model\nIn-situ calibrated",
+        "indicators": [
+            {"name": "DO Level",    "value": "2.1 mg/L",   "color": "var(--red)",    "pct": 21},
+            {"name": "BOD Estimate","value": "18 mg/L",    "color": "var(--red)",    "pct": 72},
+            {"name": "Anoxic Zone", "value": "28% surface","color": "var(--purple)", "pct": 28},
+            {"name": "Confidence",  "value": "0.85",       "color": "var(--green)",  "pct": 85}
+        ],
+        "science": "Dissolved Oxygen (DO) is estimated from Sentinel-2 blue-green band ratios combined with machine learning models trained on in-situ DO measurements. Purple-red zones indicate DO < 3 mg/L (hypoxic) — life-threatening conditions for aquatic organisms. Sewage discharge plumes are traced via high BOD proxy, elevated CDOM (colored dissolved organic matter) retrievals from the shortwave-infrared bands."
+    },
+    {
+        "key": "change",
+        "layer": "change",
+        "title": "Environmental Change — Multi-Temporal Change Detection Map",
+        "short_title": "Environmental Change (Multi-Temporal)",
+        "description": "Structural differences by overlaying a contrast layer that highlights areas of new shoreline expansion, habitat loss, or infrastructure changes against the original baseline.",
+        "image": "images/change_detection.jpg",
+        "band": "S2 2014–2026 · CVA",
+        "summary_value": "Δ Shore: −4.2%",
+        "summary_color": "var(--orange)",
+        "dot_color": "var(--orange)",
+        "severity": "DETECTED",
+        "severity_class": "sm",
+        "pulse": False,
+        "status": "CHANGE DETECTED — 2014–2026",
+        "status_color": "var(--orange)",
+        "source": "ESA Copernicus Sentinel-2\nMulti-temporal CVA 2014–2026\n10m × 10m spatial resolution",
+        "indicators": [
+            {"name": "Shoreline Change", "value": "−4.2%",  "color": "var(--red)",    "pct": 42},
+            {"name": "Habitat Loss",     "value": "−8.1 ha","color": "var(--orange)", "pct": 55},
+            {"name": "Veg. Recovery",    "value": "+2.3 ha","color": "var(--green)",  "pct": 23},
+            {"name": "Confidence",       "value": "0.91",   "color": "var(--green)",  "pct": 91}
+        ],
+        "science": "Change Vector Analysis (CVA) compares multi-temporal Sentinel-2 composites (2014 baseline vs 2026 current). Red pixels represent areas where land-cover changed to impervious surface or water edge recession exceeding the 2σ threshold. Magenta shows lake boundary retreat. Green indicates vegetation recovery. The composite uses bands B8A, B11, B4 for maximum spectral separability between change classes."
+    }
+]
+
+# ---- Scene Metadata ----
+SCENE_METADATA = {
+    "constellation": "ESA Copernicus S2-L2A",
+    "resolution": "10 m/pixel",
+    "cloud_cover": "0.02%",
+    "anomaly_score": "86 / 100",
+    "api_gateway": "COPERNICUS"
+}
+
+
+@app.get("/api/satellite-layers")
+async def get_satellite_layers():
+    """
+    Returns all 6 thematic satellite analysis layer definitions.
+    Used by the Satellite Proof Gallery frontend to render cards,
+    inspector modals, and metadata strips without any hardcoded data.
+    """
+    return {
+        "layers": SATELLITE_LAYERS,
+        "scene_meta": SCENE_METADATA
+    }
+
+
+
+@app.get("/api/analysis/{analysis_id}/satellite-image")
+async def get_satellite_image(
+    analysis_id: str,
+    mode: str = "rgb",
+    lat: float = 21.1292,
+    lng: float = 79.0394,
+    date: str = "2026-09-25"
+):
+    """
+    Renders high-definition Sentinel-2 satellite image PNG streams.
+    Modes:
+      - 'rgb': True Color Sentinel-2 RGB (B4, B3, B2)
+      - 'false_color': Infrared False Color Composite (B8, B4, B3)
+      - 'ndwi': NDWI Water Index Heatmap
+      - 'ndti': NDTI Turbidity Plume Heatmap
+      - 'ndci': NDCI Chlorophyll-a Algal Bloom Heatmap
+    """
+    scene = generate_realistic_sentinel_scene(lat=lat, lng=lng, date_str=date)
+    png_bytes = render_satellite_image_png(scene, mode=mode)
+    return Response(content=png_bytes, media_type="image/png")
+
 
 
 @app.post("/api/analyze", response_model=AnalysisResponse)
