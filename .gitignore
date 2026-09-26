@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+.env
+
+# ChromaDB
+ai_assistant/chroma_db/
+chroma_db/
+
+# Node/React
+node_modules/
+build/
+dist/
+
+# OS Files
+.DS_Store
+Thumbs.db
