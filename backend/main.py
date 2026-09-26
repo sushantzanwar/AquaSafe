@@ -68,6 +68,7 @@ import os
 AI_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ai_assistant")
 if AI_DIR not in sys.path:
     sys.path.append(AI_DIR)
+# pyrefly: ignore [missing-import]
 from rag.assistant import generate_explanation
 
 @asynccontextmanager
