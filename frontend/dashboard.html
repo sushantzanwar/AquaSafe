@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaRadar — Mission Control Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+/* ── STRICT GITHUB DARK THEME SYSTEM ──────────────── */
+:root {
+  --bg:          #0d1117;
+  --surface:     #161b22;
+  --surface2:    #1c2128;
+  --border:      #30363d;
+  --border-sub:  #21262d;
+  --text:        #e6edf3;
+  --muted:       #8b949e;
+  --faint:       #6e7681;
+  --green:       #3fb950;
+  --green-dim:   rgba(63,185,80,0.1);
+  --blue:        #58a6ff;
+  --purple:      #bc8cff;
+  --red:         #f85149;
+  --yellow:      #e3b341;
+
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── RESET & BASE ────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  opacity: 1;
+  transition: opacity 0.24s var(--ease-smooth);
+}
+body.page-leaving {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.24s var(--ease-smooth), transform 0.24s var(--ease-smooth);
+}
+
+a { text-decoration: none; color: inherit; }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+/* ── SCROLL DOWN EFFECT (GitHub Spring Reveal) ───── */
+.reveal {
+  opacity: 0;
+  transform: translateY(36px);
+  filter: blur(3px);
+  transition:
+    opacity   0.7s var(--ease-out),
+    transform 0.7s var(--ease-out),
+    filter    0.5s var(--ease-out);
+}
+.reveal.in { opacity: 1; transform: translateY(0); filter: blur(0); }
+.reveal-d1 { transition-delay: 0.1s; }
+.reveal-d2 { transition-delay: 0.2s; }
+.reveal-d3 { transition-delay: 0.3s; }
+.reveal-d4 { transition-delay: 0.4s; }
+
+/* ── TOP NAV (Strict 4 Items as Requested) ────────── */
+.nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 999;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 40px;
+  justify-content: space-between;
+  background: rgba(13,17,23,0.92);
+  border-bottom: 1px solid var(--border-sub);
+  backdrop-filter: blur(20px) saturate(1.4);
+}
+
+/* Item 1: AquaRadar Logo (Home Page Access) */
+.nav-brand {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: opacity 0.2s;
+}
+.nav-brand:hover { opacity: 0.85; }
+
+.brand-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  position: relative;
+}
+.brand-dot::after {
+  content: '';
+  position: absolute; inset: -4px;
+  border-radius: 50%;
+  background: var(--green);
+  opacity: 0.3;
+  animation: dot-pulse 2.5s ease-in-out infinite;
+}
+@keyframes dot-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50%       { transform: scale(2.2); opacity: 0; }
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Items 2, 3, 4: Analysis, AI Assistant, Field Verification */
+.nav-link {
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+  border-radius: 7px;
+  position: relative;
+  transition: color 0.2s, background 0.2s;
+}
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 4px; left: 18px; right: 18px;
+  height: 1.5px;
+  background: var(--green);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s var(--ease-out);
+}
+.nav-link:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+.nav-link:hover::after { transform: scaleX(1); }
+.nav-link.active { color: var(--green); font-weight: 600; }
+.nav-link.active::after { transform: scaleX(1); }
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sys-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border: 1px solid rgba(63,185,80,0.3);
+  border-radius: 99px;
+  background: rgba(63,185,80,0.07);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--green);
+  font-weight: 500;
+}
+.sys-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: blink-dot 2s ease infinite;
+}
+@keyframes blink-dot { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+/* ── DISCLAIMER BANNER ──────────────────────────── */
+.disclaimer {
+  margin-top: 64px;
+  padding: 13px 40px;
+  background: rgba(22,27,34,0.95);
+  border-bottom: 1px solid var(--border-sub);
+  border-left: 4px solid var(--red);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.disc-close {
+  color: var(--faint);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 16px;
+  line-height: 1;
+  transition: color 0.2s, background 0.2s;
+  flex-shrink: 0;
+}
+.disc-close:hover { color: var(--red); background: rgba(248,81,73,0.1); }
+
+/* ── KPI STRIP ──────────────────────────────────── */
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-sub);
+}
+.kpi-card {
+  padding: 24px 28px;
+  border-right: 1px solid var(--border-sub);
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+  transition: background 0.25s, transform 0.2s;
+}
+.kpi-card:last-child { border-right: none; }
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--green);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s var(--ease-out);
+}
+.kpi-card:hover { background: var(--surface2); }
+.kpi-card:hover::after { transform: scaleX(1); }
+
+.kpi-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 10px;
+}
+.kpi-val {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--green);
+}
+.kpi-val.danger { color: var(--red); }
+.kpi-val.warn   { color: var(--yellow); }
+.kpi-val.blue   { color: var(--blue); }
+.kpi-val.title  { font-size: 20px; letter-spacing: -0.01em; }
+
+.kpi-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--faint);
+  margin-top: 7px;
+  line-height: 1.5;
+}
+
+/* ── MAP CONTAINER ───────────────────────────────── */
+.map-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 40px;
+  border-bottom: 1px solid var(--border-sub);
+  background: var(--bg);
+}
+.map-header-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.map-header-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--faint);
+  margin-left: 10px;
+}
+
+.map-wrap {
+  position: relative;
+  height: 500px;
+  border-bottom: 1px solid var(--border-sub);
+}
+#map { width: 100%; height: 100%; }
+
+.scanline {
+  position: absolute; top: 0; left: 0; width: 100%; height: 2px;
+  background: var(--green);
+  box-shadow: 0 0 16px var(--green), 0 0 32px rgba(63,185,80,0.4);
+  z-index: 800;
+  animation: scan-run 1.4s cubic-bezier(0.4,0,0.6,1) forwards;
+  pointer-events: none;
+}
+@keyframes scan-run {
+  0%   { top: 0; opacity: 1; }
+  85%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+.hud-layers {
+  position: absolute; top: 16px; right: 16px; z-index: 800;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.hud-btn {
+  background: rgba(13,17,23,0.88);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 5px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 5px;
+  backdrop-filter: blur(8px);
+  transition: color 0.2s, border-color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+.hud-btn:hover {
+  color: var(--green);
+  border-color: rgba(63,185,80,0.5);
+  background: rgba(63,185,80,0.08);
+  box-shadow: 0 0 10px rgba(63,185,80,0.15);
+}
+.hud-btn.active {
+  background: var(--green);
+  color: #000;
+  border-color: var(--green);
+  font-weight: 600;
+}
+
+.hud-coord {
+  position: absolute; bottom: 16px; left: 16px; z-index: 800;
+  background: rgba(13,17,23,0.9);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 10px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--green);
+  backdrop-filter: blur(8px);
+  line-height: 1.7;
+}
+
+/* ── LOWER SPLIT: SPECTRAL CHART + ANALYSIS GATEWAY ── */
+.lower-grid {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  min-height: 380px;
+  border-bottom: 1px solid var(--border-sub);
+}
+
+.chart-panel {
+  border-right: 1px solid var(--border-sub);
+  padding: 32px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.chart-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.chart-sub {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--faint);
+  margin-top: 3px;
+}
+.chart-box { flex: 1; position: relative; min-height: 220px; }
+
+.band-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+.band-pill {
+  padding: 5px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s, transform 0.15s;
+}
+.band-pill:hover { color: var(--green); border-color: rgba(63,185,80,0.5); transform: translateY(-1px); }
+.band-pill.active { background: var(--green); color: #000; border-color: var(--green); font-weight: 600; }
+
+/* GATEWAY PANEL */
+.gateway-panel {
+  padding: 40px 36px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 24px;
+  background: var(--surface);
+  position: relative;
+  overflow: hidden;
+}
+.gateway-panel::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 100%, rgba(63,185,80,0.08) 0%, transparent 65%);
+  pointer-events: none;
+}
+.gateway-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--green);
+  font-weight: 600;
+}
+.gateway-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 28px;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  color: var(--text);
+  position: relative; z-index: 1;
+}
+.gateway-body {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.7;
+  position: relative; z-index: 1;
+}
+
+.gateway-features {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative; z-index: 1;
+}
+.gf-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  color: var(--text);
+  font-weight: 500;
+}
+.gf-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+}
+
+.btn-gateway {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 13px 24px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  color: #000;
+  background: var(--green);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  box-shadow: 0 0 0 0 rgba(63,185,80,0.5);
+  transition: background 0.2s, box-shadow 0.3s, transform 0.15s;
+  width: fit-content;
+}
+.btn-gateway:hover {
+  background: #46c957;
+  box-shadow: 0 0 32px rgba(63,185,80,0.4), 0 6px 24px rgba(0,0,0,0.4);
+  transform: translateY(-2px);
+}
+
+/* ── FOOTER ──────────────────────────────────────── */
+footer {
+  border-top: 1px solid var(--border-sub);
+  padding: 40px; background: var(--bg);
+}
+.footer-inner {
+  max-width: 1160px; margin: 0 auto;
+  display: flex; align-items: center;
+  justify-content: space-between; flex-wrap: wrap; gap: 20px;
+}
+.footer-brand { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 16px; letter-spacing: -0.03em; color: var(--text); }
+.footer-links { display: flex; gap: 24px; }
+.footer-links a { font-size: 13px; color: var(--faint); transition: color 0.2s; }
+.footer-links a:hover { color: var(--text); }
+.footer-copy { font-size: 12px; color: var(--faint); }
+
+/* ── RIPPLE ──────────────────────────────────────── */
+.rip {
+  position: absolute; border-radius: 50%;
+  background: rgba(255,255,255,0.18);
+  transform: scale(0);
+  animation: rip-anim 0.55s var(--ease-out) forwards;
+  pointer-events: none;
+}
+@keyframes rip-anim { to { transform: scale(4); opacity: 0; } }
+
+@media (max-width: 1100px) {
+  .kpi-strip { grid-template-columns: repeat(3, 1fr); }
+  .nav-links { display: none; }
+}
+@media (max-width: 900px) {
+  .lower-grid { grid-template-columns: 1fr; }
+  .chart-panel { border-right: none; border-bottom: 1px solid var(--border-sub); }
+  .kpi-strip { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .nav { padding: 0 16px; }
+  .kpi-strip { grid-template-columns: 1fr; }
+  .map-header { padding: 16px 20px; }
+  .chart-panel { padding: 24px 20px; }
+  .gateway-panel { padding: 32px 20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ TOP NAV (Strict 4 Items: AquaRadar, Analysis, AI Assistant, Field Verification) ══ -->
+<header class="nav">
+  <!-- 1. AquaRadar Logo (Home Page Access) -->
+  <a href="index.html" class="nav-brand">
+    <span class="brand-dot"></span>
+    AQUARADAR
+  </a>
+
+  <!-- 2. Analysis, 3. AI Assistant, 4. Field Verification -->
+  <nav class="nav-links">
+    <a href="assistant.html"    class="nav-link">Analysis</a>
+    <a href="ai-assistant.html" class="nav-link">AI Assistant</a>
+    <a href="ground-truth.html" class="nav-link">Field Verification</a>
+  </nav>
+
+  <div class="nav-right">
+    <div class="sys-status">
+      <span class="sys-dot"></span>
+      SYSTEM ACTIVE
+    </div>
+  </div>
+</header>
+
+<!-- ══ ADVISORY BANNER ═══════════════════════════════ -->
+<div class="disclaimer" id="disc-banner">
+  <span>⚠ <strong>Advisory</strong> — Satellite anomaly indicators are relative decision-support metrics. Physical laboratory sampling is required before any municipal public-health decision.</span>
+  <span class="disc-close" onclick="this.parentElement.remove()">×</span>
+</div>
+
+<!-- ══ KPI STRIP ═════════════════════════════════════ -->
+<div class="kpi-strip reveal">
+  <div class="kpi-card reveal reveal-d1">
+    <div class="kpi-label">Monitored Body</div>
+    <div class="kpi-val title">Lake Erie<br><span style="font-size:14px;color:var(--muted);font-family:'JetBrains Mono'">West Basin</span></div>
+    <div class="kpi-sub">ID: LE-042 · 2024-10-24</div>
+  </div>
+  <div class="kpi-card reveal reveal-d2">
+    <div class="kpi-label">Surface Extent</div>
+    <div class="kpi-val"><span class="counter" data-to="1245">0</span></div>
+    <div class="kpi-sub">km² surface extent</div>
+  </div>
+  <div class="kpi-card reveal reveal-d3">
+    <div class="kpi-label">Active Anomaly Zones</div>
+    <div class="kpi-val warn"><span class="counter" data-to="3">0</span></div>
+    <div class="kpi-sub">of 4 sectors flagged</div>
+  </div>
+  <div class="kpi-card reveal reveal-d4">
+    <div class="kpi-label">Highest Priority Score</div>
+    <div class="kpi-val danger">8.4<span style="font-size:18px;color:var(--faint)">/10</span></div>
+    <div class="kpi-sub">1,200 m to Intake Alpha</div>
+  </div>
+  <div class="kpi-card reveal reveal-d4">
+    <div class="kpi-label">Pipeline Confidence</div>
+    <div class="kpi-val blue">94<span style="font-size:20px">%</span></div>
+    <div class="kpi-sub">Clear sky · Low sunglint</div>
+  </div>
+</div>
+
+<!-- ══ GEOSPATIAL MAP ════════════════════════════════ -->
+<div class="map-header reveal">
+  <div class="map-header-title">
+    Geospatial Earth Observation Map
+    <span class="map-header-sub">Sentinel-2 Level-2A · Dark Basemap</span>
+  </div>
+  <a href="assistant.html" class="btn-gateway" style="font-size:13px;padding:7px 16px;">
+    Open Analysis →
+  </a>
+</div>
+
+<div class="map-wrap reveal">
+  <div class="scanline"></div>
+  <div id="map"></div>
+  <div class="hud-layers">
+    <button class="hud-btn active" onclick="setLayer(this,'RGB')">RGB</button>
+    <button class="hud-btn" onclick="setLayer(this,'MNDWI')">MNDWI</button>
+    <button class="hud-btn" onclick="setLayer(this,'NDCI')">NDCI</button>
+    <button class="hud-btn" onclick="setLayer(this,'SPM')">SPM</button>
+    <button class="hud-btn" onclick="setLayer(this,'SDD')">SDD</button>
+    <button class="hud-btn" onclick="setLayer(this,'RISK')">RISK</button>
+  </div>
+  <div class="hud-coord" id="coord-hud">
+    LAT: 41.8241<br>
+    LON: −83.1521<br>
+    LAYER: RGB
+  </div>
+</div>
+
+<!-- ══ LOWER SPLIT ═══════════════════════════════════ -->
+<div class="lower-grid reveal">
+  <!-- SPECTRAL CHART -->
+  <div class="chart-panel reveal reveal-d1">
+    <div>
+      <div class="chart-title">
+        Spectral Reflectance Curve
+        <span class="chart-sub">11-band profile (443 nm → 2190 nm) · Click map coordinate to pin</span>
+      </div>
+    </div>
+    <div class="chart-box">
+      <canvas id="spec-chart"></canvas>
+    </div>
+    <div class="band-pills">
+      <span class="band-pill active">B02</span>
+      <span class="band-pill active">B03</span>
+      <span class="band-pill active">B04</span>
+      <span class="band-pill">B05</span>
+      <span class="band-pill">B06</span>
+      <span class="band-pill">B07</span>
+      <span class="band-pill active">B08</span>
+      <span class="band-pill">B8A</span>
+      <span class="band-pill">B11</span>
+      <span class="band-pill">B12</span>
+    </div>
+  </div>
+
+  <!-- GATEWAY TO ANALYSIS -->
+  <div class="gateway-panel reveal reveal-d2">
+    <div class="gateway-eyebrow">Next Sequence Step</div>
+    <div class="gateway-title">Proceed to<br>Analysis Workspace</div>
+    <div class="gateway-body">Access complete zonal anomaly evidence, real-time alert feeds, and priority site rankings.</div>
+    
+    <div class="gateway-features">
+      <div class="gf-item"><span class="gf-dot"></span> 4-Zone Anomaly Evidence &amp; Baselines</div>
+      <div class="gf-item"><span class="gf-dot"></span> Real-time Emergency Alert Feed</div>
+      <div class="gf-item"><span class="gf-dot"></span> Mathematical Priority Ranking Formula</div>
+    </div>
+
+    <a href="assistant.html" class="btn-gateway" id="gateway-btn">
+      Open Analysis →
+    </a>
+  </div>
+</div>
+
+<!-- ══ FOOTER ════════════════════════════════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">AQUARADAR</div>
+    <nav class="footer-links">
+      <a href="index.html">Home</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="assistant.html">Analysis</a>
+      <a href="ai-assistant.html">AI Assistant</a>
+      <a href="ground-truth.html">Field Verification</a>
+    </nav>
+    <div class="footer-copy">© 2024 AquaWatch System</div>
+  </div>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+/* ── SCROLL REVEAL OBSERVER ───────────────────── */
+const revealObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('in');
+      revealObs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.08 });
+document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+/* ── LEAFLET MAP ──────────────────────────────── */
+let activeLayer = 'RGB';
+const map = L.map('map', { zoomControl: true }).setView([41.8241, -83.1521], 10);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
+
+const zones = [
+  { name: 'Maumee Bay Outlet',  coords: [[41.72,-83.47],[41.72,-83.35],[41.77,-83.35],[41.77,-83.47]], color: '#f85149' },
+  { name: 'Central Basin',      coords: [[41.80,-83.20],[41.80,-83.08],[41.87,-83.08],[41.87,-83.20]], color: '#e3b341' },
+  { name: 'Sandusky Bay',       coords: [[41.43,-82.90],[41.43,-82.75],[41.52,-82.75],[41.52,-82.90]], color: '#e3b341' },
+  { name: 'Eastern Open Water', coords: [[41.90,-82.60],[41.90,-82.40],[41.98,-82.40],[41.98,-82.60]], color: '#3fb950' },
+];
+zones.forEach(z => {
+  L.polygon(z.coords, { color: z.color, weight: 1.5, opacity: 0.9, fillOpacity: 0.12 }).addTo(map).bindTooltip(z.name);
+});
+
+map.on('mousemove', e => {
+  document.getElementById('coord-hud').innerHTML =
+    `LAT: ${e.latlng.lat.toFixed(4)}<br>LON: ${e.latlng.lng.toFixed(4)}<br>LAYER: ${activeLayer}`;
+});
+
+map.on('click', e => {
+  L.circleMarker(e.latlng, { radius: 7, color: '#3fb950', fillColor: '#3fb950', fillOpacity: 0.5, weight: 1.5 }).addTo(map);
+  sessionStorage.setItem('pin_lat', e.latlng.lat.toFixed(4));
+  sessionStorage.setItem('pin_lon', e.latlng.lng.toFixed(4));
+});
+
+function setLayer(btn, layer) {
+  activeLayer = layer;
+  document.querySelectorAll('.hud-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+/* ── SPECTRAL CHART ──────────────────────────── */
+const specCtx = document.getElementById('spec-chart').getContext('2d');
+const labels  = ['443','490','560','665','705','740','783','842','865','1610','2190'];
+const specData = [0.022, 0.034, 0.082, 0.052, 0.094, 0.118, 0.108, 0.082, 0.061, 0.019, 0.011];
+
+const grad = specCtx.createLinearGradient(0, 0, 0, 220);
+grad.addColorStop(0, 'rgba(63,185,80,0.3)');
+grad.addColorStop(1, 'rgba(63,185,80,0)');
+
+new Chart(specCtx, {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [{
+      label: 'Reflectance',
+      data: specData,
+      borderColor: '#3fb950',
+      backgroundColor: grad,
+      borderWidth: 2,
+      fill: true,
+      tension: 0.4,
+      pointBackgroundColor: '#3fb950',
+      pointRadius: 4,
+      pointHoverRadius: 7,
+      pointHoverBackgroundColor: '#fff',
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: {
+      backgroundColor: 'rgba(22,27,34,0.95)',
+      borderColor: '#30363d',
+      borderWidth: 1,
+      titleFont: { family: 'JetBrains Mono', size: 11 },
+      bodyFont:  { family: 'JetBrains Mono', size: 12 },
+      padding: 12,
+    }},
+    scales: {
+      x: {
+        grid: { color: 'rgba(48,54,61,0.5)' },
+        ticks: { color: '#6e7681', font: { family: 'JetBrains Mono', size: 10 } }
+      },
+      y: {
+        grid: { color: 'rgba(48,54,61,0.5)' },
+        ticks: { color: '#6e7681', font: { family: 'JetBrains Mono', size: 10 } }
+      }
+    }
+  }
+});
+
+/* ── COUNT-UP ────────────────────────────────── */
+window.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.counter').forEach(el => {
+    const target = parseInt(el.dataset.to);
+    const duration = 1400;
+    const start = performance.now();
+    function tick(now) {
+      const p = Math.min((now - start) / duration, 1);
+      const e = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(e * target);
+      if (p < 1) requestAnimationFrame(tick);
+      else el.textContent = target;
+    }
+    setTimeout(() => requestAnimationFrame(tick), 200);
+  });
+
+  document.querySelectorAll('.band-pill').forEach(p => {
+    p.addEventListener('click', () => p.classList.toggle('active'));
+  });
+});
+
+/* ── BUTTON RIPPLE ────────────────────────────── */
+document.querySelectorAll('.btn-gateway, .hud-btn').forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    const r = this.getBoundingClientRect();
+    const sz = Math.max(r.width, r.height);
+    const rip = document.createElement('span');
+    rip.className = 'rip';
+    rip.style.cssText = `width:${sz}px;height:${sz}px;left:${e.clientX - r.left - sz/2}px;top:${e.clientY - r.top - sz/2}px`;
+    this.appendChild(rip);
+    setTimeout(() => rip.remove(), 600);
+  });
+});
+
+/* ── PAGE TRANSITIONS ──────────────────────────── */
+document.querySelectorAll('a[href]').forEach(link => {
+  const h = link.getAttribute('href');
+  if (!h || h.startsWith('#') || h.startsWith('http')) return;
+  link.addEventListener('click', e => {
+    e.preventDefault();
+    document.body.classList.add('page-leaving');
+    setTimeout(() => location.href = h, 240);
+  });
+});
+</script>
+</body>
+</html>

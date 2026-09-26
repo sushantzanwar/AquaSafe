@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaRadar | Ground Truth</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --abyss: #060A0F; --bioluminite: #00FFB2; --radium: #C6FF47; --permafrost: #E8F4F1;
+  --deep-slate: #0E1A22; --iron-coral: #FF4D52; --surface: #0D1821;
+  --border: rgba(0, 255, 178, 0.15);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--abyss); color: var(--permafrost); font-family: 'Inter', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; opacity: 1; transition: opacity 0.3s; }
+body.page-exit { opacity: 0; }
+.syne { font-family: 'Syne', sans-serif; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+a { text-decoration: none; color: inherit; }
+
+.top-nav { height: 56px; background: rgba(6, 10, 15, 0.9); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 24px; z-index: 1000; flex-shrink: 0; }
+.wordmark { font-family: 'Syne'; font-weight: 600; font-size: 18px; color: var(--permafrost); letter-spacing: 1px; }
+.nav-links { display: flex; gap: 24px; margin-left: 48px; }
+.nav-links a { font-size: 14px; color: rgba(232,244,241,0.6); transition: 0.2s; }
+.nav-links a:hover, .nav-links a.active { color: var(--bioluminite); }
+
+.main-wrapper { display: flex; flex: 1; overflow: hidden; }
+.form-panel { width: 55%; padding: 48px; overflow-y: auto; border-right: 1px solid var(--border); position: relative; }
+.board-panel { width: 45%; padding: 48px; background: var(--surface); overflow-y: auto; }
+
+h1 { font-size: 36px; margin-bottom: 32px; color: var(--permafrost); }
+h2 { font-size: 24px; margin-bottom: 24px; color: var(--permafrost); }
+
+/* Form */
+.form-group { margin-bottom: 24px; }
+.form-group label { display: block; font-family: 'JetBrains Mono'; font-size: 12px; color: rgba(232,244,241,0.7); margin-bottom: 8px; }
+.form-group input { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--border); color: var(--permafrost); padding: 16px; font-family: 'Inter'; font-size: 16px; outline: none; transition: 0.3s; }
+.form-group input:focus { border-color: var(--bioluminite); }
+
+.drop-zone { border: 2px dashed var(--border); padding: 48px 24px; text-align: center; background: rgba(0,255,178,0.02); cursor: pointer; transition: 0.3s; margin-bottom: 24px; }
+.drop-zone:hover { border-color: var(--bioluminite); background: rgba(0,255,178,0.05); }
+.drop-icon { font-size: 32px; margin-bottom: 16px; }
+.drop-text { font-family: 'Syne'; font-size: 18px; color: var(--bioluminite); margin-bottom: 8px; }
+.drop-sub { font-size: 13px; color: rgba(232,244,241,0.5); }
+
+.btn-submit { background: var(--bioluminite); color: var(--abyss); padding: 16px; font-family: 'Syne'; font-weight: 700; font-size: 16px; border: none; cursor: pointer; width: 100%; transition: 0.3s; clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%); }
+.btn-submit:hover { filter: brightness(1.1); }
+
+/* Verdict Box */
+.verdict-box { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--abyss); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; opacity: 0; pointer-events: none; transition: opacity 0.5s; text-align: center; }
+.verdict-box.show { opacity: 1; pointer-events: all; }
+.v-text { font-family: 'Syne'; font-weight: 800; font-size: 48px; color: var(--bioluminite); margin-bottom: 16px; }
+.v-sub { font-size: 18px; color: var(--permafrost); }
+#confetti { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+
+/* Leaderboard */
+.lb-table { width: 100%; border-collapse: collapse; }
+.lb-table th { text-align: left; padding: 12px; font-family: 'JetBrains Mono'; font-size: 11px; color: rgba(232,244,241,0.5); border-bottom: 1px solid var(--border); }
+.lb-table td { padding: 16px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.lb-row { transition: 0.2s; }
+.lb-row:hover { background: rgba(0,255,178,0.05); }
+.lb-row.highlight { background: rgba(0,255,178,0.05); border-left: 4px solid var(--bioluminite); }
+.rank { font-family: 'Syne'; font-weight: 700; font-size: 16px; }
+.user { font-family: 'JetBrains Mono'; font-size: 13px; }
+.credits { font-weight: bold; color: var(--bioluminite); }
+.bar-wrap { width: 100px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin-top: 4px; }
+.bar-fill { height: 100%; background: var(--bioluminite); }
+
+@media (max-width: 768px) {
+  .main-wrapper { flex-direction: column; overflow-y: auto; }
+  .form-panel, .board-panel { width: 100%; padding: 24px; border: none; height: auto; }
+}
+</style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="wordmark">AQUARADAR</div>
+  <div class="nav-links">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="assistant.html">AI Assistant</a>
+    <a href="stress-test.html">Stress Test</a>
+    <a href="ground-truth.html" class="active">Field Verify</a>
+  </div>
+</nav>
+
+<div class="main-wrapper">
+  <div class="form-panel">
+    <h1 class="syne">Submit Field Verification</h1>
+    
+    <div class="drop-zone" id="drop-zone">
+      <div class="drop-icon">📸</div>
+      <div class="drop-text">Upload Sample Photo</div>
+      <div class="drop-sub">Drag & drop or click to browse (JPG, PNG)</div>
+    </div>
+    
+    <div class="form-group">
+      <label>Turbidity Reading (NTU) - Optional</label>
+      <input type="text" placeholder="e.g. 14.5">
+    </div>
+    
+    <div class="form-group">
+      <label>Water Body ID</label>
+      <input type="text" placeholder="e.g. LE-042">
+    </div>
+    
+    <div style="display:flex; gap:16px;" class="form-group">
+      <div style="flex:1;"><label>Latitude</label><input type="text" placeholder="Auto-detected"></div>
+      <div style="flex:1;"><label>Longitude</label><input type="text" placeholder="Auto-detected"></div>
+    </div>
+    
+    <button class="btn-submit" onclick="submitForm()">Submit & Earn Credits</button>
+
+    <div class="verdict-box" id="verdict">
+      <canvas id="confetti"></canvas>
+      <div class="v-text">+250 AquaWatch Credits</div>
+      <div class="v-sub">Verification submitted successfully.<br>Model calibrated.</div>
+      <button class="btn-submit" style="width: auto; margin-top: 32px; padding: 12px 32px;" onclick="document.getElementById('verdict').classList.remove('show')">Done</button>
+    </div>
+  </div>
+
+  <div class="board-panel">
+    <h2 class="syne">Field Verification Leaderboard</h2>
+    <table class="lb-table">
+      <thead>
+        <tr>
+          <th>RANK</th>
+          <th>USER ID</th>
+          <th>CREDITS</th>
+          <th>SUBMISSIONS</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="lb-row highlight">
+          <td class="rank">#1</td>
+          <td class="user">AW-TECH-84</td>
+          <td><div class="credits">14,250</div><div class="bar-wrap"><div class="bar-fill" style="width: 100%"></div></div></td>
+          <td class="mono">57</td>
+        </tr>
+        <tr class="lb-row">
+          <td class="rank">#2</td>
+          <td class="user">OH_DNR_02</td>
+          <td><div class="credits">11,800</div><div class="bar-wrap"><div class="bar-fill" style="width: 82%"></div></div></td>
+          <td class="mono">42</td>
+        </tr>
+        <tr class="lb-row">
+          <td class="rank">#3</td>
+          <td class="user">CITIZEN_SCI_9</td>
+          <td><div class="credits">8,400</div><div class="bar-wrap"><div class="bar-fill" style="width: 60%"></div></div></td>
+          <td class="mono">28</td>
+        </tr>
+        <tr class="lb-row">
+          <td class="rank">#4</td>
+          <td class="user">AW-TECH-22</td>
+          <td><div class="credits">7,100</div><div class="bar-wrap"><div class="bar-fill" style="width: 50%"></div></div></td>
+          <td class="mono">21</td>
+        </tr>
+        <tr class="lb-row">
+          <td class="rank">#5</td>
+          <td class="user">WATER_MGMT_C</td>
+          <td><div class="credits">4,500</div><div class="bar-wrap"><div class="bar-fill" style="width: 32%"></div></div></td>
+          <td class="mono">15</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// Transitions
+document.querySelectorAll('a').forEach(a => {
+  a.addEventListener('click', e => {
+    if(a.getAttribute('href') && !a.getAttribute('href').startsWith('#')) {
+      e.preventDefault();
+      document.body.classList.add('page-exit');
+      setTimeout(() => window.location.href = a.getAttribute('href'), 300);
+    }
+  });
+});
+
+// Dropzone mock
+const drop = document.getElementById('drop-zone');
+drop.addEventListener('click', () => {
+  drop.innerHTML = '<div class="drop-icon">✅</div><div class="drop-text" style="color:var(--permafrost)">sample_img_001.jpg</div><div class="drop-sub">Ready to upload</div>';
+  drop.style.borderColor = 'var(--bioluminite)';
+});
+
+// Submit & Confetti
+function submitForm() {
+  document.getElementById('verdict').classList.add('show');
+  fireConfetti();
+}
+
+function fireConfetti() {
+  const canvas = document.getElementById('confetti');
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+  
+  let particles = [];
+  for(let i=0; i<100; i++) {
+    particles.push({
+      x: canvas.width/2, y: canvas.height/2 + 50,
+      vx: (Math.random()-0.5)*10, vy: (Math.random()-1)*15,
+      c: Math.random() > 0.5 ? '#00FFB2' : '#C6FF47',
+      s: Math.random()*6 + 4
+    });
+  }
+  
+  function animate() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    let active = false;
+    particles.forEach(p => {
+      p.vy += 0.5; // gravity
+      p.x += p.vx; p.y += p.vy;
+      if(p.y < canvas.height) active = true;
+      ctx.fillStyle = p.c;
+      ctx.fillRect(p.x, p.y, p.s, p.s);
+    });
+    if(active && document.getElementById('verdict').classList.contains('show')) {
+      requestAnimationFrame(animate);
+    }
+  }
+  animate();
+}
+</script>
+</body>
+</html>

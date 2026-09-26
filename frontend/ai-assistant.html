@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaRadar — AI Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── GITHUB DARK THEME SYSTEM ─────────────────────── */
+:root {
+  --bg:          #0d1117;
+  --surface:     #161b22;
+  --surface2:    #1c2128;
+  --border:      #30363d;
+  --border-sub:  #21262d;
+  --text:        #e6edf3;
+  --muted:       #8b949e;
+  --faint:       #6e7681;
+  --green:       #3fb950;
+  --green-dim:   rgba(63,185,80,0.1);
+  --blue:        #58a6ff;
+  --purple:      #bc8cff;
+  --red:         #f85149;
+  --yellow:      #e3b341;
+
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── RESET & BASE ────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  opacity: 1;
+  transition: opacity 0.25s var(--ease-smooth);
+}
+body.page-leaving {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.25s var(--ease-smooth), transform 0.25s var(--ease-smooth);
+}
+
+a { text-decoration: none; color: inherit; }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+/* ── STATIC TOP NAV ──────────────────────────────── */
+.nav {
+  position: relative; /* Static position */
+  width: 100%;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 40px;
+  justify-content: space-between;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-sub);
+  z-index: 100;
+}
+
+.nav-brand {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.brand-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  position: relative;
+}
+.brand-dot::after {
+  content: '';
+  position: absolute; inset: -4px;
+  border-radius: 50%;
+  background: var(--green);
+  opacity: 0.3;
+  animation: dot-pulse 2.5s ease-in-out infinite;
+}
+@keyframes dot-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50%       { transform: scale(2.2); opacity: 0; }
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.nav-link {
+  padding: 7px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+  border-radius: 7px;
+  position: relative;
+  transition: color 0.2s, background 0.2s;
+}
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 4px; left: 16px; right: 16px;
+  height: 1.5px;
+  background: var(--green);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s var(--ease-out);
+}
+.nav-link:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+.nav-link:hover::after { transform: scaleX(1); }
+.nav-link.active { color: var(--green); font-weight: 600; }
+.nav-link.active::after { transform: scaleX(1); }
+
+.nav-right { display: flex; align-items: center; gap: 12px; }
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: rgba(255,255,255,0.04);
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+}
+.btn-back:hover {
+  border-color: var(--faint);
+  background: rgba(255,255,255,0.08);
+  transform: translateY(-1px);
+}
+
+/* ── SCROLL REVEAL ───────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(36px);
+  filter: blur(3px);
+  transition:
+    opacity   0.7s var(--ease-out),
+    transform 0.7s var(--ease-out),
+    filter    0.5s var(--ease-out);
+}
+.reveal.in { opacity: 1; transform: translateY(0); filter: blur(0); }
+.reveal-d1 { transition-delay: 0.1s; }
+.reveal-d2 { transition-delay: 0.2s; }
+
+/* ── BOT HERO BANNER ─────────────────────────────── */
+.bot-hero {
+  padding: 40px 48px 36px;
+  border-bottom: 1px solid var(--border-sub);
+  background: var(--surface);
+  position: relative;
+  overflow: hidden;
+}
+.bot-hero-glow {
+  position: absolute;
+  top: -50%; right: -10%;
+  width: 600px; height: 400px;
+  background: radial-gradient(ellipse, rgba(63,185,80,0.12) 0%, transparent 65%);
+  pointer-events: none;
+}
+.bot-hero-inner {
+  max-width: 1300px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 40px;
+}
+
+.bot-text-col {}
+.bot-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--green);
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+.bot-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: clamp(32px, 4vw, 48px);
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+.bot-sub {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.65;
+  max-width: 580px;
+}
+
+/* HIGH END STATIC BOT GRAPHIC / AVATAR */
+.bot-avatar-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 24px;
+  background: var(--surface2);
+  border: 1px solid var(--border-sub);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  position: relative;
+  z-index: 1;
+}
+.bot-icon-wrap {
+  width: 64px; height: 64px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(63,185,80,0.2) 0%, rgba(88,166,255,0.1) 100%);
+  border: 1px solid rgba(63,185,80,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+  box-shadow: 0 0 20px rgba(63,185,80,0.2);
+}
+.bot-icon-svg {
+  width: 36px; height: 36px;
+  color: var(--green);
+}
+.bot-status-badge {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.bs-name {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.bs-ver {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--green);
+}
+
+/* ── LAYOUT ──────────────────────────────────────── */
+.layout {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 48px 48px 100px;
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 32px;
+}
+
+/* RAG SIDEBAR */
+.rag-sidebar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: fit-content;
+  position: sticky;
+  top: 20px;
+}
+.rs-head {
+  padding: 20px 20px 14px;
+  border-bottom: 1px solid var(--border-sub);
+}
+.rs-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; color: var(--text); }
+.rs-sub { font-size: 11px; color: var(--faint); margin-top: 3px; font-family: 'JetBrains Mono', monospace; }
+
+.source-list { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.source-item {
+  padding: 14px;
+  border: 1px solid var(--border-sub);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.02);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+}
+.source-item:hover { border-color: rgba(63,185,80,0.35); background: var(--green-dim); transform: translateX(2px); }
+.s-item-title { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.4; margin-bottom: 4px; }
+.s-item-meta  { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--green); }
+
+/* CHAT INTERFACE */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  min-height: 600px;
+}
+.chat-head {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-sub);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface2);
+}
+.chat-head-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--green);
+}
+
+.chips-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip-btn {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+.chip-btn:hover { border-color: rgba(63,185,80,0.5); color: var(--green); background: var(--green-dim); }
+
+.chat-history {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.msg { display: flex; flex-direction: column; gap: 8px; max-width: 82%; }
+.msg.user { align-self: flex-end; }
+.msg.ai   { align-self: flex-start; }
+
+.bubble {
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.msg.user .bubble {
+  background: rgba(88,166,255,0.1);
+  border: 1px solid rgba(88,166,255,0.22);
+  color: var(--text);
+  border-radius: 14px 14px 4px 14px;
+}
+.msg.ai .bubble {
+  background: var(--surface2);
+  border: 1px solid var(--border-sub);
+  color: var(--muted);
+  border-radius: 4px 14px 14px 14px;
+}
+.cite-card {
+  padding: 10px 14px;
+  border-left: 2px solid var(--purple);
+  background: rgba(188,140,255,0.06);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--purple);
+  border-radius: 0 6px 6px 0;
+  line-height: 1.6;
+}
+
+.typing-dots { display: flex; gap: 4px; align-items: center; padding: 4px 2px; }
+.typing-dots span { width: 6px; height: 6px; background: var(--muted); border-radius: 50%; animation: dot-bounce 1.2s ease infinite; }
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dot-bounce { 0%,60%,100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-6px); opacity: 1; } }
+
+.chat-input-bar {
+  padding: 20px 24px;
+  border-top: 1px solid var(--border-sub);
+  background: var(--surface2);
+  display: flex;
+  gap: 12px;
+}
+.chat-input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 12px 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.chat-input:focus { border-color: rgba(63,185,80,0.5); box-shadow: 0 0 0 3px rgba(63,185,80,0.08); }
+.chat-send-btn {
+  padding: 12px 24px;
+  background: var(--green);
+  color: #000;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+}
+.chat-send-btn:hover { background: #46c957; box-shadow: 0 0 20px rgba(63,185,80,0.3); transform: translateY(-1px); }
+
+/* ── FOOTER ──────────────────────────────────────── */
+footer { border-top: 1px solid var(--border-sub); padding: 40px; background: var(--bg); }
+.footer-inner { max-width: 1300px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
+.footer-brand { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 16px; letter-spacing: -0.03em; color: var(--text); }
+.footer-links { display: flex; gap: 24px; }
+.footer-links a { font-size: 13px; color: var(--faint); transition: color 0.2s; }
+.footer-links a:hover { color: var(--text); }
+.footer-copy { font-size: 12px; color: var(--faint); }
+
+/* ── RIPPLE ──────────────────────────────────────── */
+.rip {
+  position: absolute; border-radius: 50%;
+  background: rgba(255,255,255,0.18); pointer-events: none;
+  transform: scale(0); animation: rip-anim 0.55s var(--ease-out) forwards;
+}
+@keyframes rip-anim { to { transform: scale(4); opacity: 0; } }
+
+@media (max-width: 1000px) {
+  .layout { grid-template-columns: 1fr; padding: 32px 20px 60px; }
+  .bot-hero-inner { flex-direction: column; align-items: flex-start; }
+  .nav-links { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ STATIC TOP NAV ════════════════════════════════ -->
+<header class="nav">
+  <a href="index.html" class="nav-brand">
+    <span class="brand-dot"></span>
+    AQUARADAR
+  </a>
+
+  <nav class="nav-links">
+    <a href="index.html"        class="nav-link">Home</a>
+    <a href="dashboard.html"    class="nav-link">Dashboard</a>
+    <a href="assistant.html"    class="nav-link">Analysis &amp; Report</a>
+    <a href="alerts.html"       class="nav-link">Alert Feed</a>
+    <a href="ai-assistant.html" class="nav-link active">AI Assistant</a>
+    <a href="ground-truth.html" class="nav-link">Field Verify</a>
+  </nav>
+
+  <div class="nav-right">
+    <a href="dashboard.html" class="btn-back">
+      ← Back to Dashboard
+    </a>
+  </div>
+</header>
+
+<!-- ══ BOT HERO BANNER ═══════════════════════════════ -->
+<div class="bot-hero">
+  <div class="bot-hero-glow"></div>
+  <div class="bot-hero-inner">
+    <div class="bot-text-col">
+      <div class="bot-eyebrow">RAG Hydrology Assistant · Peer-Reviewed Corpus</div>
+      <h1 class="bot-title">AI Assistant</h1>
+      <p class="bot-sub">Ask biogeochemical questions, interpret multispectral Sentinel-2 ratios, and receive source-cited responses backed by indexed hydrology literature.</p>
+    </div>
+
+    <!-- STATIC BOT GRAPHIC / AVATAR CARD -->
+    <div class="bot-avatar-card reveal">
+      <div class="bot-icon-wrap">
+        <svg class="bot-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+          <circle cx="12" cy="5" r="2"></circle>
+          <path d="M12 7v4"></path>
+          <line x1="8" y1="16" x2="8.01" y2="16"></line>
+          <line x1="16" y1="16" x2="16.01" y2="16"></line>
+        </svg>
+      </div>
+      <div class="bot-status-badge">
+        <div class="bs-name">AquaWatch AI Bot</div>
+        <div class="bs-ver">● ONLINE · RAG v3.4 Active</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAIN LAYOUT ─────────────────────────────────── -->
+<div class="layout">
+  <!-- RAG SOURCES SIDEBAR -->
+  <aside class="rag-sidebar reveal">
+    <div class="rs-head">
+      <div class="rs-title">RAG Knowledge Corpus</div>
+      <div class="rs-sub">Indexed Hydrology Publications</div>
+    </div>
+    <div class="source-list">
+      <div class="source-item">
+        <div class="s-item-title">Seamless retrievals of chlorophyll-a and suspended solids</div>
+        <div class="s-item-meta">Pahlevan et al. · 2020</div>
+      </div>
+      <div class="source-item">
+        <div class="s-item-title">NDCI: A normalized difference approach for chlorophyll-a estimation</div>
+        <div class="s-item-meta">Mishra &amp; Mishra · 2012</div>
+      </div>
+      <div class="source-item">
+        <div class="s-item-title">Harmful Algal Bloom dynamics in Lake Erie Western Basin</div>
+        <div class="s-item-meta">EPA Technical Report · 2023</div>
+      </div>
+      <div class="source-item">
+        <div class="s-item-title">MNDWI for water body extraction in remote sensing imagery</div>
+        <div class="s-item-meta">Xu, H. · 2006</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CHAT INTERFACE -->
+  <div class="chat-container reveal reveal-d1">
+    <div class="chat-head">
+      <div class="chat-head-title">Interactive AI Agent</div>
+      <div class="chips-row">
+        <span class="chip-btn" data-q="What does elevated NDCI indicate?">NDCI explained</span>
+        <span class="chip-btn" data-q="What drives SPM turbidity in reservoirs?">SPM drivers</span>
+        <span class="chip-btn" data-q="Explain the MNDWI formula">MNDWI formula</span>
+        <span class="chip-btn" data-q="How is the spectral baseline calibrated?">Calibration</span>
+      </div>
+    </div>
+
+    <div class="chat-history" id="chat-history">
+      <div class="msg user"><div class="bubble">What does elevated NDCI indicate?</div></div>
+      <div class="msg ai">
+        <div class="bubble">An elevated NDCI (Normalized Difference Chlorophyll Index) value — typically above 2σ from the seasonal baseline — indicates elevated chlorophyll-a concentrations in the water column, which is a primary proxy for cyanobacterial or algal bloom activity. The current Zone 01 reading of 0.42 is 3.2σ above seasonal mean, which qualifies as a SEVERE-level indicator.</div>
+        <div class="cite-card">📄 Mishra &amp; Mishra (2012) · Remote Sensing of Environment — Normalized difference chlorophyll index...</div>
+      </div>
+      <div class="msg user"><div class="bubble">What drives SPM turbidity in reservoir systems?</div></div>
+      <div class="msg ai">
+        <div class="bubble">Suspended Particulate Matter (SPM) turbidity in reservoir systems is driven by three primary mechanisms: (1) runoff-induced sediment influx following precipitation events, (2) algal bloom-associated scattering from high phytoplankton density, and (3) wind-driven resuspension of bottom sediment in shallow zones. Zone 02 currently shows B04 (665 nm) reflectance consistent with mechanism 1.</div>
+        <div class="cite-card">📄 Pahlevan et al. (2020) · Remote Sensing of Environment — Seamless retrievals of chlorophyll-a...</div>
+      </div>
+    </div>
+
+    <div class="chat-input-bar">
+      <input type="text" class="chat-input" id="chat-input" placeholder="Ask an operational hydrology question…">
+      <button class="chat-send-btn" id="chat-send-btn">Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FOOTER ════════════════════════════════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">AQUARADAR</div>
+    <nav class="footer-links">
+      <a href="index.html">Home</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="assistant.html">Analysis &amp; Report</a>
+      <a href="alerts.html">Alert Feed</a>
+      <a href="ai-assistant.html">AI Assistant</a>
+      <a href="ground-truth.html">Field Verify</a>
+    </nav>
+    <div class="footer-copy">© 2024 AquaWatch System</div>
+  </div>
+</footer>
+
+<script>
+/* ── SCROLL REVEAL OBSERVER ───────────────────── */
+const revealObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('in');
+      revealObs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.08 });
+document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+/* ── AI CHAT ENGINE ───────────────────────────── */
+const responses = {
+  'ndci': 'An elevated NDCI value above the 2σ threshold indicates chlorophyll-a concentrations consistent with cyanobacterial blooms. Zone 01 currently reads 0.42 (3.2σ), which is at SEVERE alert level.',
+  'spm':  'SPM turbidity in reservoirs is driven by sediment runoff, phytoplankton scattering, and wind resuspension. Zone 02 B04 reflectance at 665 nm indicates runoff sediment influx is dominant.',
+  'mndwi':'MNDWI = (Green − SWIR) / (Green + SWIR). Water absorbs SWIR while reflecting green, yielding values near +1 for open water. It outperforms NDWI in turbid conditions.',
+  'calibr':'The spectral baseline is calibrated using a 3-year rolling percentile model per calendar month and zone. Anomaly scores are z-transformed against baseline with cloud mask filtering.',
+  'default':'Based on the current spectral profile for Basin LE-042, multi-band indicators suggest active bloom dynamics in the Western Basin. Cross-referencing B05 Red Edge (705 nm) helps isolate the chlorophyll signal.'
+};
+const citations = {
+  'ndci':   'Mishra & Mishra (2012) · Remote Sensing of Environment',
+  'spm':    'Pahlevan et al. (2020) · Remote Sensing of Environment',
+  'mndwi':  'Xu, H. (2006) · International Journal of Remote Sensing',
+  'calibr': 'EPA Technical Report (2023) · HAB Guidance for Utilities',
+  'default':'EPA (2023) · Cyanobacteria Technical Guidance'
+};
+function classify(q) {
+  const l = q.toLowerCase();
+  if (l.includes('ndci') || l.includes('chlorophyll') || l.includes('bloom')) return 'ndci';
+  if (l.includes('spm') || l.includes('turbidity')) return 'spm';
+  if (l.includes('mndwi') || l.includes('water index')) return 'mndwi';
+  if (l.includes('calibrat') || l.includes('baseline')) return 'calibr';
+  return 'default';
+}
+
+function sendChat(q) {
+  const log = document.getElementById('chat-history');
+  const u = document.createElement('div');
+  u.className = 'msg user';
+  u.innerHTML = `<div class="bubble">${q}</div>`;
+  log.appendChild(u);
+  log.scrollTop = log.scrollHeight;
+
+  const t = document.createElement('div');
+  t.className = 'msg ai';
+  t.innerHTML = `<div class="bubble" style="padding:16px 20px;"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+  log.appendChild(t);
+  log.scrollTop = log.scrollHeight;
+
+  const k = classify(q);
+  setTimeout(() => {
+    t.remove();
+    const a = document.createElement('div');
+    a.className = 'msg ai';
+    a.innerHTML = `<div class="bubble">${responses[k]}</div><div class="cite-card">📄 ${citations[k]}</div>`;
+    log.appendChild(a);
+    log.scrollTop = log.scrollHeight;
+  }, 1300 + Math.random() * 500);
+}
+
+document.getElementById('chat-send-btn').addEventListener('click', () => {
+  const inp = document.getElementById('chat-input');
+  const v = inp.value.trim();
+  if (!v) return;
+  inp.value = '';
+  sendChat(v);
+});
+document.getElementById('chat-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('chat-send-btn').click();
+});
+document.querySelectorAll('.chip-btn').forEach(c => {
+  c.addEventListener('click', () => sendChat(c.dataset.q));
+});
+
+/* ── BUTTON RIPPLE ────────────────────────────── */
+document.querySelectorAll('.btn-back, .chat-send-btn').forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    const r = this.getBoundingClientRect();
+    const sz = Math.max(r.width, r.height);
+    const rip = document.createElement('span');
+    rip.className = 'rip';
+    rip.style.cssText = `width:${sz}px;height:${sz}px;left:${e.clientX - r.left - sz/2}px;top:${e.clientY - r.top - sz/2}px`;
+    this.appendChild(rip);
+    setTimeout(() => rip.remove(), 600);
+  });
+});
+
+/* ── PAGE TRANSITION ──────────────────────────── */
+document.querySelectorAll('a[href]').forEach(link => {
+  const h = link.getAttribute('href');
+  if (!h || h.startsWith('#') || h.startsWith('http')) return;
+  link.addEventListener('click', e => {
+    e.preventDefault();
+    document.body.classList.add('page-leaving');
+    setTimeout(() => location.href = h, 240);
+  });
+});
+</script>
+</body>
+</html>
