@@ -343,26 +343,36 @@ out body geom;
     # Try Nominatim reverse-geocoding to detect lake/dam/reservoir name anywhere in India
     if httpx:
         try:
-            async with httpx.AsyncClient(timeout=3.0, headers={"User-Agent": "AquaSafe-India-Water-Detection/2.0"}) as client:
+            async with httpx.AsyncClient(timeout=3.5, headers={"User-Agent": "AquaSafe-India-Water-Detection/2.0"}) as client:
                 rev_url = f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json"
                 r = await client.get(rev_url)
                 if r.status_code == 200:
                     data = r.json()
-                    n = data.get("name")
+                    n = data.get("name") or ""
                     addr = data.get("address", {})
-                    detected = n or addr.get("water") or addr.get("natural") or addr.get("leisure") or addr.get("suburb") or addr.get("county") or addr.get("state_district")
-                    if detected:
-                        clean_name = detected if any(w in detected.lower() for w in ["lake", "dam", "sagar", "talao", "reservoir", "pond"]) else f"{detected} Water Body"
-                        circle = _generate_circle_polygon(lat, lon, clean_name, radius_km=1.2)
+                    
+                    # Strictly check for authentic water feature attributes
+                    water_tag = addr.get("water") or addr.get("waterway")
+                    natural_tag = addr.get("natural")
+                    is_water = False
+                    clean_name = ""
+
+                    if water_tag or natural_tag in ("water", "wetland", "bay", "strait", "basin"):
+                        is_water = True
+                        clean_name = n or water_tag or natural_tag
+                    elif n and any(w in n.lower() for w in ["lake", "dam", "sagar", "talao", "reservoir", "pond", "talav", "sarovar", "river", "wetland", "canal", "ghat", "basin"]):
+                        is_water = True
+                        clean_name = n
+
+                    if is_water and clean_name:
+                        circle = _generate_circle_polygon(lat, lon, clean_name, radius_km=1.0)
                         _osm_cache[f"name:{clean_name}"] = circle
                         return {"name": clean_name, "geojson": circle}
         except Exception:
             pass
 
-    # Universal guaranteed fallback for any lake, pond, dam across India
-    fallback_name = f"Water Body ({lat:.4f}° N, {lon:.4f}° E)"
-    circle = _generate_circle_polygon(lat, lon, fallback_name, radius_km=1.0)
-    return {"name": fallback_name, "geojson": circle}
+    # No water body found at this coordinate
+    return None
 
 
 async def _fetch_nearby_lakes(lat: float, lon: float, radius_km: float = 10.0) -> List[Dict[str, Any]]:
@@ -533,10 +543,14 @@ async def detect_lake(
     """
     result = await _fetch_lake_at_point(lat, lon)
     if not result:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No named water body found at ({lat:.5f}, {lon:.5f}). Try clicking directly on a lake."
-        )
+        return {
+            "is_water": False,
+            "error": "NON_WATER_BODY",
+            "message": f"No water body detected at ({lat:.4f}° N, {lon:.4f}° E). Please mark a lake, reservoir, pond, or river.",
+            "centroid": {"lat": lat, "lon": lon},
+            "lat": lat,
+            "lon": lon
+        }
 
     name = result["name"]
     geojson = result["geojson"]
@@ -550,6 +564,7 @@ async def detect_lake(
     nearby_filtered = [n for n in nearby if n["name"].lower() != name.lower()]
 
     return {
+        "is_water": True,
         "name": name,
         "geojson": geojson,
         "centroid": {"lat": lat, "lon": lon},
