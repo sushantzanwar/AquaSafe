@@ -1,39 +1,38 @@
 import os
+from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.prompts import ChatPromptTemplate
-from langchain.schema.runnable import RunnablePassthrough
-from langchain.schema.output_parser import StrOutputParser
+
+load_dotenv()
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
 
 # Make sure the user has their GEMINI_API_KEY set in their environment variables
 # os.environ["GEMINI_API_KEY"] = "your_api_key_here"
 
 # 1. Initialize the Gemini 1.5 Flash model
 llm = ChatGoogleGenerativeAI(
-    model="gemini-1.5-flash",
+    model="gemini-flash-latest",
     temperature=0.1, # Low temperature to prevent hallucinations
     max_tokens=500   # Keep responses concise and token usage low
 )
 
 # 2. Create a strict prompt template to force the model to ground its answers
 PROMPT_TEMPLATE = """
-You are AquaWatch, a scientific AI assistant designed to explain remote-sensing water anomaly data. 
-Your goal is to explain WHY a water body was flagged by our system.
-
-You will be provided with:
-1. LIVE DATA: The real-time JSON output from our detection models.
-2. SCIENTIFIC CONTEXT: Extracts from scientific papers explaining indices like NDCI, NDTI, etc.
+You are AquaWatch, a dual-purpose AI assistant.
+1. When asked about specific water anomalies or satellite data, you are a strict scientific expert.
+2. When asked general questions about water quality, health, or citizen science, you are a helpful and educational guide.
 
 CRITICAL INSTRUCTIONS:
-- ONLY use the provided live data and scientific context to answer. 
-- Do NOT hallucinate or invent numbers. 
-- If the context does not contain the answer, say "I do not have enough scientific context to explain this."
-- Keep your explanation clear, professional, and accessible to a non-scientist (like a local official).
+- SCENARIO A (System Anomaly): If the user asks why a specific lake was flagged, ONLY use the provided LIVE DATA and SCIENTIFIC CONTEXT to explain the exact reason. Do not invent numbers.
+- SCENARIO B (Citizen Doubt): If the user asks a general question (e.g., "Is green water safe?", "What is turbidity?"), answer them helpfully using your general knowledge, even if it's not in the context.
+- ALWAYS keep your explanation clear, professional, and accessible to a non-scientist (like a local official or a concerned citizen).
 
 ---------------------
-LIVE DATA:
+LIVE DATA (If applicable):
 {live_data}
 ---------------------
-SCIENTIFIC CONTEXT:
+SCIENTIFIC CONTEXT (If applicable):
 {context}
 ---------------------
 
