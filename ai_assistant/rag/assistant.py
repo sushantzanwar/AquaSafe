@@ -1,21 +1,12 @@
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
-
-load_dotenv()
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 
-# Make sure the user has their GEMINI_API_KEY set in their environment variables
-# os.environ["GEMINI_API_KEY"] = "your_api_key_here"
-
-# 1. Initialize the Gemini 1.5 Flash model
-llm = ChatGoogleGenerativeAI(
-    model="gemini-flash-latest",
-    temperature=0.1, # Low temperature to prevent hallucinations
-    max_tokens=500   # Keep responses concise and token usage low
-)
+# Always load the .env from ai_assistant/ dir, regardless of where this is imported from
+_ENV_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+load_dotenv(dotenv_path=_ENV_PATH, override=True)
 
 # 2. Create a strict prompt template to force the model to ground its answers
 PROMPT_TEMPLATE = """
@@ -24,9 +15,10 @@ You are AquaWatch, a dual-purpose AI assistant.
 2. When asked general questions about water quality, health, or citizen science, you are a helpful and educational guide.
 
 CRITICAL INSTRUCTIONS:
-- SCENARIO A (System Anomaly): If the user asks why a specific lake was flagged, ONLY use the provided LIVE DATA and SCIENTIFIC CONTEXT to explain the exact reason. Do not invent numbers.
-- SCENARIO B (Citizen Doubt): If the user asks a general question (e.g., "Is green water safe?", "What is turbidity?"), answer them helpfully using your general knowledge, even if it's not in the context.
-- ALWAYS keep your explanation clear, professional, and accessible to a non-scientist (like a local official or a concerned citizen).
+- SCENARIO A (System Anomaly): If the user asks why a specific lake was flagged, ONLY use the provided LIVE DATA and SCIENTIFIC CONTEXT to explain the exact reason. Explain the anomaly as a shift from the historical baseline (e.g. "elevated turbidity-related spectral indicators relative to the baseline"). State the percentage of anomalous area if present.
+- SCENARIO B (Citizen Doubt): If the user asks a general question, answer them helpfully using your general knowledge.
+- TERMINOLOGY: Do NOT use the words "pollution" or "contamination" definitively unless confirmed by a lab. Instead use "spectral anomaly", "baseline deviation", "optical condition", or "anomalous area". State that "this indicates an unusual optical condition, but does not by itself confirm a specific contaminant. Field sampling is recommended."
+- ALWAYS keep your explanation clear, professional, and accessible to a non-scientist.
 
 ---------------------
 LIVE DATA (If applicable):
@@ -43,21 +35,31 @@ EXPLANATION:
 
 prompt = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
 
+def _get_llm() -> ChatGoogleGenerativeAI:
+    """Lazily initialize the LLM so the API key is read at call time, not import time."""
+    return ChatGoogleGenerativeAI(
+        model="gemini-3.8-flash",
+        temperature=0.1,  # Low temperature to prevent hallucinations
+        max_tokens=500    # Keep responses concise and token usage low
+    )
+
 def generate_explanation(live_json_data: dict, scientific_context: str, user_question: str) -> str:
     """
     Generates an explanation using the Gemini model, grounding it in the provided live data and context.
     """
-    
+    # Lazily create LLM so API key is loaded from .env before validation
+    llm = _get_llm()
+
     # We create a simple chain: Prompt -> LLM -> String Output
     chain = prompt | llm | StrOutputParser()
-    
+
     # Execute the chain
     response = chain.invoke({
         "live_data": str(live_json_data),
         "context": scientific_context,
         "question": user_question
     })
-    
+
     return response
 
 # For testing locally if you run this script directly:
@@ -68,15 +70,15 @@ if __name__ == "__main__":
         # Example live data (this would come from our mock server in production)
         dummy_live_data = {
             "water_body": "Ambazari Lake",
-            "contamination_detection": {
-                "indicators": {"ndci": 0.18, "turbidity": 45.5},
+            "baseline_comparison": {
+                "indicators": {"ndci": 0.18, "turbidity_proxy": 45.5},
                 "anomaly_status": "HIGH",
-                "detected_contaminants": ["Algal Bloom"]
+                "anomalous_area_pct": 18
             }
         }
         
         # Example scientific context (this would come from ChromaDB/Vector Store later)
-        dummy_context = "NDCI (Normalized Difference Chlorophyll Index) values above 0.1 generally indicate severe algal blooms. High turbidity combined with high NDCI often means the water is unsafe for consumption."
+        dummy_context = "NDCI (Normalized Difference Chlorophyll Index) deviations above 0.1 generally indicate elevated chlorophyll relative to baseline. High turbidity combined with high NDCI often means the optical condition is anomalous and warrants field verification."
         
         print("\n--- AquaWatch RAG Assistant (Terminal Chat) ---")
         print("Type 'exit' or 'quit' to stop.\n")

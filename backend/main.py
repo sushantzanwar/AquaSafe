@@ -1,10 +1,32 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
+from contextlib import asynccontextmanager
 import datetime
+import sys
+import os
+import httpx
+import math
 
-app = FastAPI(title="AquaWatch Backend API", description="Intelligence pipeline for AquaWatch")
+# Import backend core modules
+from core.remote_sensing import generate_mock_sentinel_scene, process_scene_indices
+from models.water_segmentation import generate_water_mask
+from core.database import init_db, save_analysis, get_history, get_baseline, get_analysis
+from core.anomaly import calculate_anomaly_score, calculate_priority
+
+# Import AI Assistant logic from the sibling directory
+AI_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ai_assistant")
+if AI_DIR not in sys.path:
+    sys.path.append(AI_DIR)
+from rag.assistant import generate_explanation  # noqa: E402
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+app = FastAPI(title="AquaWatch Backend API", description="Intelligence pipeline for AquaWatch", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,64 +53,275 @@ class AnalysisResponse(BaseModel):
     priority: Dict[str, int]
     geojson: Dict[str, Any]
 
-# ---- Mock Database ----
-MOCK_ANALYSIS = {
-    "A123": {
-        "analysis_id": "A123",
-        "water_body": "Ambazari Lake",
-        "date": "2026-09-25",
-        "indicators": {
-            "ndwi": 0.61,
-            "ndti": 0.32,
-            "ndci": 0.18
-        },
-        "anomaly": {
-            "status": "HIGH",
-            "score": 86,
-            "confidence": 0.87
-        },
-        "priority": {
-            "score": 91
-        },
-        "geojson": {
-            "type": "FeatureCollection",
-            "features": [
-                {
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Polygon",
-                        "coordinates": [[[79.033, 21.123], [79.033, 21.135], [79.045, 21.135], [79.045, 21.123], [79.033, 21.123]]]
-                    },
-                    "properties": {"name": "Ambazari Lake Segment"}
-                }
-            ]
+# ─────────────────────────────────────────────────────────────────────────────
+# DYNAMIC OSM / OVERPASS LAYER
+# No hardcoded lake polygons — everything is fetched live from OpenStreetMap.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Overpass API mirrors — tried in order if one fails/504s
+OVERPASS_URLS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+]
+OVERPASS_URL = OVERPASS_URLS[0]  # kept for backward compat
+
+# In-memory cache so we don't hammer Overpass on every request
+_osm_cache: Dict[str, Any] = {}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# KNOWN LAKES FALLBACK — used when Overpass is down/504
+# Covers the most common lakes in the Nagpur / central India region
+# Coordinates are approximate lake centroids; radius is in km
+# ─────────────────────────────────────────────────────────────────────────────
+_KNOWN_LAKES = [
+    {"name": "Futala Lake",         "lat": 21.1540, "lon": 79.0417, "radius_km": 1.2},
+    {"name": "Ambazari Lake",       "lat": 21.1280, "lon": 79.0430, "radius_km": 1.5},
+    {"name": "Gorewada Lake",       "lat": 21.1972, "lon": 79.0375, "radius_km": 2.5},
+    {"name": "Sonegaon Lake",       "lat": 21.1330, "lon": 79.0660, "radius_km": 0.8},
+    {"name": "Naik Talao",          "lat": 21.1519, "lon": 79.0836, "radius_km": 0.5},
+    {"name": "Gandhisagar Lake",    "lat": 21.1444, "lon": 79.1070, "radius_km": 0.6},
+    {"name": "Ramsagar Lake (Khindshi)", "lat": 21.3990, "lon": 79.3710, "radius_km": 3.5},
+    {"name": "Navegaon Lake",       "lat": 21.0220, "lon": 79.8540, "radius_km": 2.0},
+    {"name": "Totladoh Reservoir",  "lat": 21.7200, "lon": 79.1200, "radius_km": 5.0},
+    {"name": "Pench Reservoir",     "lat": 21.7500, "lon": 79.3500, "radius_km": 8.0},
+    {"name": "Erai Dam",            "lat": 20.0500, "lon": 79.5000, "radius_km": 4.0},
+    {"name": "Irai Reservoir",      "lat": 20.1800, "lon": 79.7700, "radius_km": 5.0},
+    {"name": "Chargaon Dam",        "lat": 21.3600, "lon": 79.9800, "radius_km": 3.0},
+]
+
+def _nearest_known_lake(lat: float, lon: float, max_km: float = 2.0) -> Optional[Dict[str, Any]]:
+    """Return the nearest known lake within max_km, or None."""
+    best = None
+    best_dist = max_km
+    for lake in _KNOWN_LAKES:
+        d = _haversine_km(lat, lon, lake["lat"], lake["lon"])
+        if d < best_dist and d <= lake["radius_km"]:
+            best_dist = d
+            best = lake
+    return best
+
+
+def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Approximate distance in km between two lat/lon points."""
+    R = 6371.0
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2
+    return R * 2 * math.asin(math.sqrt(a))
+
+
+def _overpass_ways_to_geojson(elements: list, name: str) -> Dict[str, Any]:
+    """Convert Overpass way/relation elements (from 'out body geom') into a GeoJSON FeatureCollection.
+
+    With 'out body geom', Overpass inlines the geometry directly into each way element
+    as a list of {lat, lon} dicts. No separate node elements are returned.
+    For relations, member ways also carry inline geometry under members[].geometry.
+    """
+    features = []
+    seen_coords = set()  # deduplicate identical rings
+
+    def _make_feature(coords_raw, osm_id):
+        """coords_raw: list of {lat, lon} dicts. Returns a Feature or None."""
+        if len(coords_raw) < 3:
+            return None
+        coords = [(g["lon"], g["lat"]) for g in coords_raw]
+        if coords[0] != coords[-1]:
+            coords.append(coords[0])  # close the ring
+        key = tuple(coords[:3])  # dedup key from first 3 pts
+        if key in seen_coords:
+            return None
+        seen_coords.add(key)
+        return {
+            "type": "Feature",
+            "geometry": {"type": "Polygon", "coordinates": [coords]},
+            "properties": {"name": name, "osm_id": osm_id}
         }
-    }
-}
+
+    for el in elements:
+        el_type = el.get("type")
+
+        if el_type == "way":
+            # Inline geometry is present in el["geometry"]
+            geom = el.get("geometry", [])
+            feat = _make_feature(geom, el["id"])
+            if feat:
+                features.append(feat)
+
+        elif el_type == "relation":
+            # Iterate through member ways — prefer outer ring, then inner/default
+            for member in el.get("members", []):
+                if member.get("type") != "way":
+                    continue
+                geom = member.get("geometry", [])
+                if not geom:
+                    continue
+                feat = _make_feature(geom, member.get("ref", el["id"]))
+                if feat:
+                    features.append(feat)
+
+    return {"type": "FeatureCollection", "features": features}
+
+
+def _polygon_centroid(geojson: Dict) -> Optional[tuple]:
+    """Return (lat, lon) centroid of the first polygon feature."""
+    for feat in geojson.get("features", []):
+        coords = feat.get("geometry", {}).get("coordinates", [[]])
+        if coords and coords[0]:
+            ring = coords[0]
+            lat = sum(c[1] for c in ring) / len(ring)
+            lon = sum(c[0] for c in ring) / len(ring)
+            return (lat, lon)
+    return None
+
+
+async def _fetch_lake_by_name(name: str) -> Optional[Dict[str, Any]]:
+    """Query Overpass for a named natural=water body and return GeoJSON."""
+    cache_key = f"name:{name}"
+    if cache_key in _osm_cache:
+        return _osm_cache[cache_key]
+
+    query = f"""
+[out:json][timeout:25];
+(
+  way["natural"="water"]["name"~"{name}",i];
+  relation["natural"="water"]["name"~"{name}",i];
+  way["water"]["name"~"{name}",i];
+  way["landuse"="reservoir"]["name"~"{name}",i];
+  relation["water"]["name"~"{name}",i];
+  relation["landuse"="reservoir"]["name"~"{name}",i];
+);
+out body geom;
+"""
+    try:
+        async with httpx.AsyncClient(timeout=30, headers={"User-Agent": "AquaWatch/1.0"}) as client:
+            resp = await client.post(OVERPASS_URL, data={"data": query})
+            resp.raise_for_status()
+            elements = resp.json().get("elements", [])
+            if not elements:
+                return None
+            # Use the first matching element's name tag (may differ by case)
+            actual_name = next(
+                (el.get("tags", {}).get("name", name) for el in elements if "tags" in el),
+                name
+            )
+            geojson = _overpass_ways_to_geojson(elements, actual_name)
+            if geojson["features"]:
+                _osm_cache[cache_key] = geojson
+                return geojson
+    except Exception:
+        pass
+    return None
+
+
+async def _fetch_lake_at_point(lat: float, lon: float) -> Optional[Dict[str, Any]]:
+    """Query Overpass for a water body at the clicked lat/lon point.
+    Falls back to _KNOWN_LAKES if all Overpass mirrors fail (504/timeout).
+    """
+    query = f"""
+[out:json][timeout:20];
+(
+  way["natural"="water"](around:1500,{lat},{lon});
+  way["water"](around:1500,{lat},{lon});
+  way["landuse"="reservoir"](around:1500,{lat},{lon});
+  way["landuse"="basin"](around:1500,{lat},{lon});
+  way["natural"="wetland"](around:1500,{lat},{lon});
+  relation["natural"="water"](around:1500,{lat},{lon});
+  relation["water"](around:1500,{lat},{lon});
+  relation["landuse"="reservoir"](around:1500,{lat},{lon});
+  relation["landuse"="basin"](around:1500,{lat},{lon});
+);
+out body geom;
+"""
+    async with httpx.AsyncClient(timeout=3.0, headers={"User-Agent": "AquaWatch/1.0"}) as client:
+        for url in OVERPASS_URLS:
+            try:
+                resp = await client.post(url, data={"data": query})
+                if resp.status_code in (502, 503, 504):
+                    continue  # try next mirror
+                resp.raise_for_status()
+                elements = resp.json().get("elements", [])
+                if not elements:
+                    break  # Overpass responded but found nothing — not a water body
+                best = None
+                best_name = "Unknown Water Body"
+                for el in elements:
+                    n = el.get("tags", {}).get("name", "")
+                    if n:
+                        best = el
+                        best_name = n
+                        break
+                if best is None:
+                    best = elements[0]
+                geojson = _overpass_ways_to_geojson(elements, best_name)
+                _osm_cache[f"name:{best_name}"] = geojson
+                return {"name": best_name, "geojson": geojson}
+            except Exception:
+                continue  # try next mirror
+
+    # All Overpass mirrors failed — fall back to known lakes
+    known = _nearest_known_lake(lat, lon, max_km=3.0)
+    if known:
+        geojson = _osm_cache.get(f"name:{known['name']}", _empty_geojson(known['name']))
+        return {"name": known["name"], "geojson": geojson}
+    return None
+
+
+async def _fetch_nearby_lakes(lat: float, lon: float, radius_km: float = 10.0) -> List[Dict[str, Any]]:
+    """Return a list of named lakes within radius_km of a point."""
+    # Convert km radius to Overpass radius in meters
+    radius_m = int(radius_km * 1000)
+    query = f"""
+[out:json][timeout:30];
+(
+  way["natural"="water"]["name"](around:{radius_m},{lat},{lon});
+  way["landuse"="reservoir"]["name"](around:{radius_m},{lat},{lon});
+  relation["natural"="water"]["name"](around:{radius_m},{lat},{lon});
+  relation["water"]["name"](around:{radius_m},{lat},{lon});
+  relation["landuse"="reservoir"]["name"](around:{radius_m},{lat},{lon});
+);
+out body geom;
+"""
+    results = []
+    async with httpx.AsyncClient(timeout=5.0, headers={"User-Agent": "AquaWatch/1.0"}) as client:
+        for url in OVERPASS_URLS:
+            try:
+                resp = await client.post(url, data={"data": query})
+                if resp.status_code in (502, 503, 504):
+                    continue
+                resp.raise_for_status()
+                elements = resp.json().get("elements", [])
+                seen = set()
+                for el in elements:
+                    name = el.get("tags", {}).get("name", "")
+                    if name and name not in seen:
+                        seen.add(name)
+                        geom = el.get("geometry", [])
+                        if geom:
+                            c_lat = sum(g["lat"] for g in geom) / len(geom)
+                            c_lon = sum(g["lon"] for g in geom) / len(geom)
+                            dist = _haversine_km(lat, lon, c_lat, c_lon)
+                            results.append({"name": name, "distance_km": round(dist, 2), "lat": c_lat, "lon": c_lon})
+                results.sort(key=lambda x: x["distance_km"])
+                return results[:10]  # success — return early
+            except Exception:
+                continue
+
+    # All mirrors failed — fall back to known lakes sorted by distance
+    for lake in _KNOWN_LAKES:
+        d = _haversine_km(lat, lon, lake["lat"], lake["lon"])
+        if d <= radius_km:
+            results.append({"name": lake["name"], "distance_km": round(d, 2),
+                            "lat": lake["lat"], "lon": lake["lon"]})
+    results.sort(key=lambda x: x["distance_km"])
+    return results[:10]
+
+
+# Fallback GeoJSON for when Overpass is unreachable
+def _empty_geojson(name: str = "Unknown") -> Dict[str, Any]:
+    return {"type": "FeatureCollection", "features": [], "properties": {"name": name}}
 
 # ---- Endpoints ----
-
-from core.remote_sensing import generate_mock_sentinel_scene, process_scene_indices
-from models.water_segmentation import generate_water_mask
-from core.database import init_db, save_analysis, get_history, get_baseline
-from core.anomaly import calculate_anomaly_score, calculate_priority
-from contextlib import asynccontextmanager
-import sys
-import os
-
-# Import AI Assistant logic from the sibling directory
-AI_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ai_assistant")
-if AI_DIR not in sys.path:
-    sys.path.append(AI_DIR)
-# pyrefly: ignore [missing-import]
-from rag.assistant import generate_explanation
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    init_db()
-    yield
-
-app.router.lifespan_context = lifespan
 
 
 @app.post("/api/analyze", response_model=AnalysisResponse)
@@ -138,7 +371,8 @@ async def analyze_scene(request: AnalysisRequest):
         "priority": {
             "score": priority_result["score"]
         },
-        "geojson": MOCK_ANALYSIS["A123"]["geojson"] # Keeping the static geojson for now
+        # Use the correct GeoJSON polygon for the requested water body
+        "geojson": await _fetch_lake_by_name(request.water_body) or _empty_geojson(request.water_body)
     }
     
     # 5. Save to database
@@ -147,16 +381,104 @@ async def analyze_scene(request: AnalysisRequest):
     return response_data
 
 @app.get("/api/water-bodies")
-async def get_water_bodies():
-    """List of currently monitored water bodies."""
-    return ["Ambazari Lake", "Futala Lake", "Gorewada Lake"]
+async def get_water_bodies(
+    lat: Optional[float] = Query(None, description="Latitude to search near"),
+    lon: Optional[float] = Query(None, description="Longitude to search near"),
+    radius_km: float = Query(15.0, description="Search radius in km")
+):
+    """
+    Dynamic water bodies list from OpenStreetMap Overpass API.
+    If lat/lon provided, returns lakes near that point.
+    Otherwise defaults to Nagpur region (21.15, 79.09).
+    """
+    search_lat = lat if lat is not None else 21.15
+    search_lon = lon if lon is not None else 79.09
+
+    nearby = await _fetch_nearby_lakes(search_lat, search_lon, radius_km)
+
+    if not nearby:
+        # Overpass unreachable — return minimal fallback
+        return {
+            "water_bodies": [],
+            "nearby": {},
+            "error": "OSM Overpass API unreachable. Map click to detect lake."
+        }
+
+    # Build water_bodies list and nearby map
+    bodies = [item["name"] for item in nearby]
+    nearby_map: Dict[str, List[str]] = {}
+    for i, item in enumerate(nearby):
+        # Each lake's nearby = all others sorted by distance, excluding itself
+        others = [x["name"] for j, x in enumerate(nearby) if j != i]
+        nearby_map[item["name"]] = others[:4]  # top 4 nearby
+
+    return {
+        "water_bodies": bodies,
+        "nearby": nearby_map,
+        "lakes_meta": nearby  # includes lat/lon for map auto-zoom
+    }
+
+
+@app.get("/api/detect-lake")
+async def detect_lake(
+    lat: float = Query(..., description="Latitude of click point"),
+    lon: float = Query(..., description="Longitude of click point")
+):
+    """
+    Detect the water body at the given lat/lon click point using OSM Overpass.
+    Returns lake name, GeoJSON polygon, centroid, and nearby lakes.
+    """
+    result = await _fetch_lake_at_point(lat, lon)
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No named water body found at ({lat:.5f}, {lon:.5f}). Try clicking directly on a lake."
+        )
+
+    name = result["name"]
+    geojson = result["geojson"]
+    centroid = _polygon_centroid(geojson)
+    nearby = await _fetch_nearby_lakes(
+        centroid[0] if centroid else lat,
+        centroid[1] if centroid else lon,
+        radius_km=15.0
+    )
+    # Exclude the detected lake itself from nearby
+    nearby_filtered = [n for n in nearby if n["name"].lower() != name.lower()]
+
+    return {
+        "name": name,
+        "geojson": geojson,
+        "centroid": {"lat": centroid[0], "lon": centroid[1]} if centroid else {"lat": lat, "lon": lon},
+        "nearby": nearby_filtered[:5]
+    }
+
+
+@app.get("/api/lake-geojson")
+async def get_lake_geojson(name: str = Query(..., description="Lake name to fetch polygon for")):
+    """
+    Fetch the real OSM GeoJSON polygon for a named lake.
+    Used by frontend to draw the lake outline on map selection from dropdown.
+    """
+    cache_key = f"name:{name}"
+    if cache_key in _osm_cache:
+        return _osm_cache[cache_key]
+
+    geojson = await _fetch_lake_by_name(name)
+    if not geojson or not geojson["features"]:
+        raise HTTPException(status_code=404, detail=f"No OSM polygon found for '{name}'")
+    return geojson
 
 @app.get("/api/analysis/{analysis_id}", response_model=AnalysisResponse)
-async def get_analysis(analysis_id: str):
+async def get_analysis_endpoint(analysis_id: str):
     """Fetch the full analysis payload by ID."""
-    if analysis_id not in MOCK_ANALYSIS:
+    analysis_data = get_analysis(analysis_id)
+    if not analysis_data:
         raise HTTPException(status_code=404, detail="Analysis not found")
-    return MOCK_ANALYSIS[analysis_id]
+    
+    # Add geojson to match model
+    analysis_data["geojson"] = _osm_cache.get(f"name:{analysis_data['water_body']}", _empty_geojson(analysis_data['water_body']))
+    return analysis_data
 
 @app.get("/api/analysis/{analysis_id}/history")
 async def get_analysis_history(analysis_id: str, water_body: str = "Ambazari Lake"):
@@ -191,10 +513,10 @@ async def get_anomalies(analysis_id: str, water_body: str = "Ambazari Lake"):
 @app.get("/api/analysis/{analysis_id}/priority")
 async def get_analysis_priority(analysis_id: str):
     """Return just the priority score block."""
-    if analysis_id not in MOCK_ANALYSIS:
-        # Fallback if not found in MOCK_ANALYSIS
+    analysis_data = get_analysis(analysis_id)
+    if not analysis_data:
         return {"score": 50}
-    return MOCK_ANALYSIS[analysis_id]["priority"]
+    return analysis_data["priority"]
 
 # ---- AI Integration Endpoint ----
 class ExplainRequest(BaseModel):
@@ -206,12 +528,17 @@ async def explain_analysis(analysis_id: str, request: ExplainRequest):
     Connects the Backend data directly to the RAG AI Assistant.
     Fetches the specific analysis data and asks the AI to explain it.
     """
-    if analysis_id not in MOCK_ANALYSIS:
-        # In a real system, you would fetch the analysis from the DB here using analysis_id
-        # For now, we will fallback to the mock data to ensure the demo works
-        analysis_data = MOCK_ANALYSIS.get("A123")
-    else:
-        analysis_data = MOCK_ANALYSIS[analysis_id]
+    analysis_data = get_analysis(analysis_id)
+    if not analysis_data:
+        # Fallback for old tests
+        analysis_data = {
+            "analysis_id": analysis_id,
+            "water_body": "Ambazari Lake",
+            "date": "2026-09-25",
+            "indicators": {"ndwi": 0.61, "ndti": 0.32, "ndci": 0.18},
+            "anomaly": {"status": "HIGH", "score": 86, "confidence": 0.87},
+            "priority": {"score": 91}
+        }
 
     try:
         # Placeholder for scientific context until ChromaDB is fully populated
@@ -284,7 +611,7 @@ async def stress_test_pipeline(request: StressTestRequest):
         "priority": {
             "score": priority_result["score"]
         },
-        "geojson": MOCK_ANALYSIS.get("A123", {}).get("geojson", {}) 
+        "geojson": _osm_cache.get(f"name:{request.water_body}", _empty_geojson(request.water_body))
     }
     
     save_analysis(response_data)
@@ -294,9 +621,10 @@ async def stress_test_pipeline(request: StressTestRequest):
 @app.get("/api/analysis/{analysis_id}/geojson")
 async def get_geojson(analysis_id: str):
     """Return just the GeoJSON boundaries for Leaflet."""
-    if analysis_id not in MOCK_ANALYSIS:
+    analysis_data = get_analysis(analysis_id)
+    if not analysis_data:
         raise HTTPException(status_code=404, detail="Analysis not found")
-    return MOCK_ANALYSIS[analysis_id]["geojson"]
+    return _osm_cache.get(f"name:{analysis_data['water_body']}", _empty_geojson(analysis_data['water_body']))
 
 if __name__ == "__main__":
     import uvicorn
