@@ -61,6 +61,14 @@ from models.water_segmentation import generate_water_mask
 from core.database import init_db, save_analysis, get_history, get_baseline
 from core.anomaly import calculate_anomaly_score, calculate_priority
 from contextlib import asynccontextmanager
+import sys
+import os
+
+# Import AI Assistant logic from the sibling directory
+AI_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ai_assistant")
+if AI_DIR not in sys.path:
+    sys.path.append(AI_DIR)
+from rag.assistant import generate_explanation
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -174,6 +182,40 @@ async def get_analysis_priority(analysis_id: str):
         # Fallback if not found in MOCK_ANALYSIS
         return {"score": 50}
     return MOCK_ANALYSIS[analysis_id]["priority"]
+
+# ---- AI Integration Endpoint ----
+class ExplainRequest(BaseModel):
+    user_question: str
+
+@app.post("/api/analysis/{analysis_id}/explain")
+async def explain_analysis(analysis_id: str, request: ExplainRequest):
+    """
+    Connects the Backend data directly to the RAG AI Assistant.
+    Fetches the specific analysis data and asks the AI to explain it.
+    """
+    if analysis_id not in MOCK_ANALYSIS:
+        # In a real system, you would fetch the analysis from the DB here using analysis_id
+        # For now, we will fallback to the mock data to ensure the demo works
+        analysis_data = MOCK_ANALYSIS.get("A123")
+    else:
+        analysis_data = MOCK_ANALYSIS[analysis_id]
+
+    try:
+        # Placeholder for scientific context until ChromaDB is fully populated
+        scientific_context = "NDCI measures chlorophyll. High values indicate algal blooms. NDTI measures turbidity."
+        
+        explanation = generate_explanation(
+            live_json_data=analysis_data,
+            scientific_context=scientific_context,
+            user_question=request.user_question
+        )
+        return {
+            "analysis_id": analysis_id,
+            "question": request.user_question,
+            "explanation": explanation
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI Assistant Error: {str(e)}")
 
 # ---- Stress Test Endpoint for Person 3 ----
 
