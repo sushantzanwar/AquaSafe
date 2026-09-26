@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AquaRadar — Satellite Proof Gallery &amp; Geospatial Intelligence</title>
-<meta name="description" content="Technical geospatial map interface overlaid on high-resolution satellite imagery with 6 geometric environmental survey layers, automated water body validation, and regulatory benchmarking.">
+<title>Satellite Proof Gallery — Technical Geospatial Map</title>
+<meta name="description" content="Technical geospatial map interface overlaid on high-resolution satellite imagery with 6 geometric environmental survey layers and regulatory benchmarking.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <!-- Leaflet CSS for Geospatial Satellite Interface -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
@@ -14,7 +14,7 @@
   --bg: #090d13;
   --surface: #121820;
   --surface2: #18222d;
-  --surface-glass: rgba(18, 24, 32, 0.88);
+  --surface-glass: rgba(18, 24, 32, 0.92);
   --border: #23303d;
   --border-sub: #1a2530;
   --text: #e6edf3;
@@ -23,26 +23,51 @@
   
   /* 6 Environmental Parameter Colors */
   --c-algal: #22c55e;
-  --c-algal-dim: rgba(34, 197, 94, 0.16);
   --c-erosion: #d97706;
-  --c-erosion-dim: rgba(217, 119, 6, 0.16);
   --c-industrial: #ef4444;
-  --c-industrial-dim: rgba(239, 68, 68, 0.18);
   --c-runoff: #38bdf8;
-  --c-runoff-dim: rgba(56, 189, 248, 0.16);
   --c-sewage: #a855f7;
-  --c-sewage-dim: rgba(168, 85, 247, 0.16);
   --c-change-cyan: #06b6d4;
   --c-change-yellow: #eab308;
-  
+
   --cyan: #39c5bb;
   --green: #3fb950;
   --blue: #58a6ff;
-  --purple: #bc8cff;
   --red: #f85149;
   --yellow: #e3b341;
+  --purple: #a855f7;
+  --orange: #f97316;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/* ══ PREMIUM MAP SYMBOL ANIMATIONS ══════════════════════════ */
+@keyframes sym-pulse-green {
+  0%,100% { filter: drop-shadow(0 0 4px #22c55e) drop-shadow(0 0 10px #22c55e66); }
+  50%      { filter: drop-shadow(0 0 10px #22c55e) drop-shadow(0 0 24px #22c55eaa); }
+}
+@keyframes sym-pulse-red {
+  0%,100% { filter: drop-shadow(0 0 4px #ef4444) drop-shadow(0 0 10px #ef444466); }
+  50%      { filter: drop-shadow(0 0 10px #ef4444) drop-shadow(0 0 22px #ef4444aa); }
+}
+@keyframes sym-pulse-purple {
+  0%,100% { filter: drop-shadow(0 0 4px #a855f7) drop-shadow(0 0 10px #a855f766); }
+  50%      { filter: drop-shadow(0 0 10px #a855f7) drop-shadow(0 0 22px #a855f7aa); }
+}
+@keyframes sym-spin-ring {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes sym-float {
+  0%,100% { transform: translateY(0px); }
+  50%      { transform: translateY(-3px); }
+}
+.sym-algal   { animation: sym-pulse-green  2.2s ease-in-out infinite, sym-float 3.5s ease-in-out infinite; }
+.sym-erosion { animation: sym-float 4s ease-in-out infinite; filter: drop-shadow(0 0 5px #d97706aa); }
+.sym-industrial { animation: sym-pulse-red 1.8s ease-in-out infinite; }
+.sym-runoff  { animation: sym-float 3s ease-in-out infinite; filter: drop-shadow(0 0 6px #38bdf8aa); }
+.sym-sewage  { animation: sym-pulse-purple 2s ease-in-out infinite; }
+.sym-change  { animation: sym-float 5s ease-in-out infinite; }
+.sym-ring    { transform-origin: center; animation: sym-spin-ring 6s linear infinite; }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
@@ -78,7 +103,7 @@ a { text-decoration: none; color: inherit; }
 .nav-brand {
   font-family: 'Syne', sans-serif;
   font-weight: 800;
-  font-size: 19px;
+  font-size: 18px;
   letter-spacing: -0.03em;
   display: flex;
   align-items: center;
@@ -86,19 +111,19 @@ a { text-decoration: none; color: inherit; }
   color: #fff;
 }
 .brand-dot {
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: var(--cyan);
+  background: var(--green);
   position: relative;
-  box-shadow: 0 0 10px var(--cyan);
+  box-shadow: 0 0 10px var(--green);
 }
 .brand-dot::after {
   content: '';
   position: absolute;
   inset: -4px;
   border-radius: 50%;
-  background: var(--cyan);
+  background: var(--green);
   opacity: 0.35;
   animation: pulse-ring 2.4s ease-in-out infinite;
 }
@@ -146,133 +171,41 @@ a { text-decoration: none; color: inherit; }
 /* ══ MAIN CONTAINER ══════════════════════════════════════════════ */
 .main { margin-top: 64px; padding: 0 0 80px; }
 
-/* HERO STRIP */
-.hero-strip {
-  background: linear-gradient(180deg, #101721 0%, #0c1219 100%);
+/* ══ CLEAN PAGE HEADER (Matches other webpages) ═════════════════ */
+.page-header {
+  padding: 22px 48px;
+  background: var(--surface);
   border-bottom: 1px solid var(--border-sub);
-  padding: 28px 48px 22px;
-}
-.hero-eyebrow {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  color: var(--cyan);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  margin-bottom: 6px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.hero-title {
-  font-family: 'Syne', sans-serif;
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: #fff;
-  line-height: 1.2;
-  margin-bottom: 8px;
-}
-.hero-sub {
-  color: var(--muted);
-  font-size: 13.5px;
-  line-height: 1.6;
-  max-width: 980px;
-}
-.hero-meta {
-  display: flex;
-  gap: 10px;
-  margin-top: 14px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-.chip {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  border: 1px solid;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.chip-cyan { color: var(--cyan); background: rgba(57,197,187,0.08); border-color: rgba(57,197,187,0.25); }
-.chip-green { color: var(--green); background: rgba(63,185,80,0.08); border-color: rgba(63,185,80,0.25); }
-.chip-yellow { color: var(--yellow); background: rgba(227,179,65,0.08); border-color: rgba(227,179,65,0.25); }
-.chip-blue { color: var(--blue); background: rgba(88,166,255,0.08); border-color: rgba(88,166,255,0.25); }
-
-/* ══ NON-WATER BODY ALERT MODAL / BANNER ═════════════════════════ */
-.non-water-alert {
-  display: none;
-  margin: 20px 48px 0;
-  background: linear-gradient(135deg, rgba(239,68,68,0.12) 0%, rgba(220,38,38,0.05) 100%);
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  border-radius: 12px;
-  padding: 16px 22px;
-  box-shadow: 0 8px 30px rgba(239, 68, 68, 0.15);
-  animation: shake 0.4s var(--ease-out);
-}
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-6px); }
-  75% { transform: translateX(6px); }
-}
-.nwa-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 6px;
 }
-.nwa-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.page-title {
   font-family: 'Syne', sans-serif;
+  font-size: 24px;
   font-weight: 700;
-  font-size: 14px;
-  color: var(--red);
-  letter-spacing: 0.02em;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.25;
 }
-.nwa-body {
-  font-size: 13px;
-  color: #fca5a5;
-  line-height: 1.55;
-  max-width: 900px;
-}
-.nwa-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-}
-.nwa-btn {
-  background: rgba(239, 68, 68, 0.2);
-  border: 1px solid rgba(239, 68, 68, 0.5);
-  color: #fff;
-  font-size: 11.5px;
-  font-family: 'JetBrains Mono', monospace;
-  padding: 5px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.nwa-btn:hover { background: rgba(239, 68, 68, 0.4); }
 
 /* ══ SINGLE BIG GEOSPATIAL MAP SECTION ═══════════════════════════ */
 .map-full-section {
-  margin: 22px 48px 0;
+  margin: 20px 48px 0;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 14px;
   overflow: hidden;
   box-shadow: 0 12px 44px rgba(0, 0, 0, 0.55);
   position: relative;
 }
 
-/* SEARCH & CONTROLS TOP STRIP */
+/* TOOLBAR & HUD */
 .map-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px;
+  padding: 11px 18px;
   background: var(--surface2);
   border-bottom: 1px solid var(--border-sub);
   gap: 16px;
@@ -283,30 +216,30 @@ a { text-decoration: none; color: inherit; }
   align-items: center;
   gap: 12px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--muted);
 }
 .map-hud-chips strong { color: var(--cyan); }
 .map-search-inline {
   position: relative;
   flex: 1;
-  max-width: 520px;
+  max-width: 480px;
 }
 .water-search-input {
   width: 100%;
-  padding: 8px 36px 8px 14px;
+  padding: 7px 34px 7px 12px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 7px;
   color: var(--text);
   font-family: 'Inter', sans-serif;
-  font-size: 13px;
+  font-size: 12.5px;
   outline: none;
   transition: all 0.2s;
 }
 .water-search-input:focus {
   border-color: var(--cyan);
-  box-shadow: 0 0 0 3px rgba(57, 197, 187, 0.18);
+  box-shadow: 0 0 0 2px rgba(57, 197, 187, 0.2);
 }
 .search-clear-btn {
   position: absolute;
@@ -316,7 +249,7 @@ a { text-decoration: none; color: inherit; }
   background: none;
   border: none;
   color: var(--muted);
-  font-size: 18px;
+  font-size: 16px;
   cursor: pointer;
   display: none;
 }
@@ -330,29 +263,29 @@ a { text-decoration: none; color: inherit; }
   border: 1px solid var(--border);
   border-radius: 8px;
   margin-top: 4px;
-  max-height: 240px;
+  max-height: 220px;
   overflow-y: auto;
   display: none;
   box-shadow: 0 16px 40px rgba(0,0,0,0.7);
 }
 .s-item {
-  padding: 9px 14px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--border-sub);
   cursor: pointer;
   transition: background 0.15s;
 }
 .s-item:last-child { border-bottom: none; }
 .s-item:hover { background: var(--surface2); }
-.s-item-title { font-size: 12.5px; font-weight: 600; color: var(--cyan); }
-.s-item-sub { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+.s-item-title { font-size: 12px; font-weight: 600; color: var(--cyan); }
+.s-item-sub { font-size: 10.5px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
 
-/* QUICK CHIPS ROW */
+/* ══ DYNAMIC PRESETS STRIP (Fed by Leaflet selection & backend) ══ */
 .quick-chips-strip {
-  padding: 8px 20px;
+  padding: 8px 18px;
   display: flex;
   align-items: center;
-  gap: 7px;
-  background: rgba(13, 17, 23, 0.8);
+  gap: 8px;
+  background: rgba(13, 17, 23, 0.85);
   border-bottom: 1px solid var(--border-sub);
   overflow-x: auto;
 }
@@ -363,6 +296,12 @@ a { text-decoration: none; color: inherit; }
   font-weight: 600;
   letter-spacing: 0.05em;
   white-space: nowrap;
+}
+.presets-container {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  overflow-x: auto;
 }
 .qchip {
   background: var(--surface);
@@ -375,6 +314,9 @@ a { text-decoration: none; color: inherit; }
   transition: all 0.2s;
   white-space: nowrap;
   font-family: 'Inter', sans-serif;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 .qchip:hover {
   background: var(--surface2);
@@ -382,7 +324,7 @@ a { text-decoration: none; color: inherit; }
   color: var(--cyan);
 }
 .qchip.active {
-  background: rgba(57, 197, 187, 0.18);
+  background: rgba(57, 197, 187, 0.16);
   border-color: var(--cyan);
   color: #fff;
   font-weight: 600;
@@ -402,113 +344,106 @@ a { text-decoration: none; color: inherit; }
   cursor: crosshair;
 }
 
-/* ══ MAP ON-SCREEN TECHNICAL OVERLAYS ════════════════════════════ */
-/* 1. Coordinates HUD (Top-Left) */
+/* ══ MAP ON-SCREEN OVERLAYS ══════════════════════════════════════ */
 .map-hud-box {
   position: absolute;
-  top: 16px;
-  left: 16px;
+  top: 14px;
+  left: 14px;
   z-index: 500;
   background: var(--surface-glass);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 9px 14px;
+  padding: 8px 12px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--text);
   backdrop-filter: blur(12px);
   pointer-events: none;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
 }
 .hud-accent { color: var(--cyan); font-weight: 700; }
 
-/* 2. Map Index Badge (Top-Right) */
 .map-index-badge {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 14px;
+  right: 14px;
   z-index: 500;
   background: var(--surface-glass);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 8px 14px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10.5px;
-  color: var(--muted);
-  backdrop-filter: blur(12px);
-  pointer-events: none;
-  text-align: right;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-}
-.map-index-badge strong { color: var(--green); }
-
-/* 3. North Arrow Compass Rose (Bottom-Left) */
-.north-arrow-wrap {
-  position: absolute;
-  bottom: 24px;
-  left: 20px;
-  z-index: 500;
-  background: var(--surface-glass);
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  width: 52px;
-  height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
-  pointer-events: none;
-}
-.north-arrow-svg {
-  width: 32px;
-  height: 32px;
-  transform: rotate(0deg);
-  transition: transform 0.3s;
-}
-
-/* 4. Cartographic Scale Bar (Bottom-Left next to Compass) */
-.scale-hud-box {
-  position: absolute;
-  bottom: 24px;
-  left: 82px;
-  z-index: 500;
-  background: var(--surface-glass);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 6px 12px;
+  padding: 7px 12px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   color: var(--muted);
   backdrop-filter: blur(12px);
   pointer-events: none;
+  text-align: right;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+.map-index-badge strong { color: var(--green); }
+
+.north-arrow-wrap {
+  position: absolute;
+  bottom: 20px;
+  left: 18px;
+  z-index: 500;
+  background: var(--surface-glass);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  pointer-events: none;
+}
+.north-arrow-svg {
+  width: 28px;
+  height: 28px;
+}
+
+.scale-hud-box {
+  position: absolute;
+  bottom: 20px;
+  left: 74px;
+  z-index: 500;
+  background: var(--surface-glass);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px;
+  color: var(--muted);
+  backdrop-filter: blur(12px);
+  pointer-events: none;
 }
 .scale-bar-line {
-  width: 100px;
+  width: 90px;
   height: 3px;
   background: linear-gradient(90deg, #fff 0%, #fff 50%, var(--cyan) 50%, var(--cyan) 100%);
   margin-top: 3px;
   border-radius: 2px;
 }
 
-/* 5. ══ CORNER LEGEND: ENVIRONMENTAL SURVEY LAYERS ══════════════ */
+/* ══ CORNER LEGEND: ENVIRONMENTAL SURVEY LAYERS ══════════════════ */
 .survey-legend-card {
   position: absolute;
-  bottom: 24px;
-  right: 20px;
+  bottom: 20px;
+  right: 18px;
   z-index: 600;
-  width: 320px;
-  background: rgba(14, 20, 28, 0.92);
+  width: 310px;
+  background: rgba(14, 20, 28, 0.94);
   border: 1px solid rgba(57, 197, 187, 0.3);
-  border-radius: 12px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65), 0 0 20px rgba(57, 197, 187, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(16px);
   overflow: hidden;
-  transition: all 0.3s var(--ease-out);
 }
 .legend-head {
-  padding: 10px 14px;
-  background: linear-gradient(90deg, rgba(57,197,187,0.14) 0%, rgba(18,24,32,0.95) 100%);
+  padding: 9px 12px;
+  background: linear-gradient(90deg, rgba(57,197,187,0.12) 0%, rgba(18,24,32,0.95) 100%);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -516,151 +451,107 @@ a { text-decoration: none; color: inherit; }
 }
 .legend-head-title {
   font-family: 'Syne', sans-serif;
-  font-size: 11.5px;
-  font-weight: 800;
+  font-size: 11px;
+  font-weight: 700;
   color: #fff;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
 }
 .legend-minimize-btn {
   background: none;
   border: none;
   color: var(--muted);
-  font-size: 16px;
+  font-size: 15px;
   cursor: pointer;
 }
 .legend-items {
-  padding: 10px 14px;
+  padding: 8px 12px;
   display: flex;
   flex-direction: column;
-  gap: 9px;
-  max-height: 380px;
+  gap: 8px;
+  max-height: 360px;
   overflow-y: auto;
 }
 .leg-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 6px;
-  border-radius: 6px;
-  transition: background 0.2s;
+  padding: 3px 5px;
+  border-radius: 5px;
+  transition: background 0.15s;
   cursor: pointer;
 }
 .leg-row:hover { background: rgba(255, 255, 255, 0.04); }
-.leg-left {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
+.leg-left { display: flex; align-items: center; gap: 8px; }
 .leg-sym {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 .leg-info { display: flex; flex-direction: column; }
-.leg-name {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--text);
-  line-height: 1.2;
-}
-.leg-sub {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9.5px;
-  color: var(--muted);
-}
-.leg-toggle {
-  accent-color: var(--cyan);
-  cursor: pointer;
-  width: 14px;
-  height: 14px;
-}
-.leg-scale-bar {
-  margin-top: 2px;
-  width: 100%;
-  height: 3px;
-  border-radius: 2px;
-}
+.leg-name { font-size: 11px; font-weight: 600; color: var(--text); line-height: 1.2; }
+.leg-sub { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--muted); }
+.leg-toggle { accent-color: var(--cyan); cursor: pointer; width: 13px; height: 13px; }
+.leg-scale-bar { margin-top: 2px; width: 100%; height: 3px; border-radius: 2px; }
 .scale-algal { background: linear-gradient(90deg, #86efac 0%, #22c55e 50%, #15803d 100%); }
 .scale-erosion { background: linear-gradient(90deg, #fde68a 0%, #d97706 50%, #78350f 100%); }
-.scale-industrial { background: linear-gradient(90deg, #fecaca 0%, #ef4444 50%, #991b1b 100%); }
+.scale-industrial { background: linear-gradient(90deg, #fca5a5 0%, #ef4444 50%, #991b1b 100%); }
 .scale-runoff { background: linear-gradient(90deg, #bae6fd 0%, #38bdf8 50%, #1e40af 100%); }
 .scale-sewage { background: linear-gradient(90deg, #e9d5ff 0%, #a855f7 50%, #581c87 100%); }
 .scale-change { background: linear-gradient(90deg, #06b6d4 0%, #06b6d4 50%, #eab308 50%, #eab308 100%); }
 
-/* ══ MAP SYMBOL SVG STYLING & ANIMATIONS ════════════════════════ */
+/* ══ MAP SYMBOL SVG STYLING ══════════════════════════════════════ */
 .sym-icon-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.8));
-  transition: transform 0.25s var(--ease-out);
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.8));
+  transition: transform 0.2s var(--ease-out);
 }
-.sym-icon-wrap:hover {
-  transform: scale(1.35);
-  z-index: 9999 !important;
-}
+.sym-icon-wrap:hover { transform: scale(1.3); z-index: 9999 !important; }
 
-/* Green Circle: Algal Activity */
-.algal-circle-svg {
-  animation: algal-glow 2.5s ease-in-out infinite;
-}
+.algal-circle-svg { animation: algal-glow 2.5s ease-in-out infinite; }
 @keyframes algal-glow {
   0%, 100% { filter: drop-shadow(0 0 2px #22c55e); }
-  50% { filter: drop-shadow(0 0 10px #4ade80); }
+  50% { filter: drop-shadow(0 0 8px #4ade80); }
 }
 
-/* Brown Triangle: Soil Erosion */
-.erosion-triangle-svg {
-  filter: drop-shadow(0 2px 5px rgba(217, 119, 6, 0.6));
-}
-
-/* Red Square: Industrial Discharge */
-.industrial-square-svg {
-  animation: industrial-heat 1.8s ease-in-out infinite;
-}
+.industrial-square-svg { animation: industrial-heat 1.8s ease-in-out infinite; }
 @keyframes industrial-heat {
-  0%, 100% { filter: drop-shadow(0 0 3px #ef4444); }
-  50% { filter: drop-shadow(0 0 12px #ff0055); }
+  0%, 100% { filter: drop-shadow(0 0 2px #ef4444); }
+  50% { filter: drop-shadow(0 0 10px #ff0055); }
 }
 
-/* Blue Arrow: Agricultural Runoff */
-.runoff-arrow-svg {
-  animation: arrow-drift 2s linear infinite;
-}
+.runoff-arrow-svg { animation: arrow-drift 2s linear infinite; }
 @keyframes arrow-drift {
-  0% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-3px) scale(1.08); }
-  100% { transform: translateY(0) scale(1); }
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+  100% { transform: translateY(0); }
 }
 
-/* Purple Hexagon: Sewage / BOD */
-.sewage-hex-svg {
-  animation: sewage-pulse 2.2s ease-in-out infinite;
-}
+.sewage-hex-svg { animation: sewage-pulse 2.2s ease-in-out infinite; }
 @keyframes sewage-pulse {
   0%, 100% { filter: drop-shadow(0 0 2px #a855f7); }
-  50% { filter: drop-shadow(0 0 10px #c084fc); }
+  50% { filter: drop-shadow(0 0 8px #c084fc); }
 }
 
-/* Cartographic Area Labels on Map */
 .map-carto-label {
-  background: rgba(10, 14, 20, 0.88);
+  background: rgba(10, 14, 20, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 5px;
-  padding: 3px 8px;
+  border-radius: 4px;
+  padding: 2px 7px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   color: #fff;
   white-space: nowrap;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
   pointer-events: auto;
 }
 .map-carto-label.agri { border-color: var(--c-runoff); color: #7dd3fc; }
@@ -670,51 +561,45 @@ a { text-decoration: none; color: inherit; }
 .map-carto-label.wetland { border-color: var(--c-change-cyan); color: #67e8f9; }
 
 /* ══ COMPARISON SECTION: BAR GRAPH & PIE CHART ══════════════════ */
-.comparison-section {
-  margin: 32px 48px 0;
-}
+.comparison-section { margin: 28px 48px 0; }
 .sec-header-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
   border-bottom: 1px solid var(--border-sub);
-  padding-bottom: 14px;
+  padding-bottom: 12px;
 }
 .sec-eyebrow {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--cyan);
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 .sec-title {
   font-family: 'Syne', sans-serif;
-  font-size: 22px;
-  font-weight: 800;
+  font-size: 20px;
+  font-weight: 700;
   color: #fff;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.015em;
 }
-.sec-sub {
-  font-size: 13px;
-  color: var(--muted);
-  margin-top: 3px;
-}
+.sec-sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
 
 .charts-grid {
   display: grid;
   grid-template-columns: 1.25fr 1fr;
-  gap: 20px;
+  gap: 18px;
 }
 .chart-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 22px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.35);
   position: relative;
   overflow: hidden;
-  transition: transform 0.25s var(--ease-out), border-color 0.25s;
+  transition: transform 0.2s var(--ease-out), border-color 0.2s;
 }
 .chart-card:hover {
   transform: translateY(-2px);
@@ -724,90 +609,82 @@ a { text-decoration: none; color: inherit; }
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 .chart-card-title {
   font-family: 'Syne', sans-serif;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: #fff;
 }
 .chart-card-sub {
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--muted);
   font-family: 'JetBrains Mono', monospace;
   margin-top: 2px;
 }
 .chart-badge {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  padding: 3px 8px;
+  font-size: 9.5px;
+  padding: 3px 7px;
   border-radius: 4px;
   border: 1px solid;
 }
 .chart-wrap {
   width: 100%;
   position: relative;
-  height: 320px;
+  height: 310px;
 }
 
 /* ══ SYSTEMATIC 6 PARAMETER CARDS SECTION ═══════════════════════ */
-.params-section {
-  margin: 32px 48px 0;
-}
+.params-section { margin: 28px 48px 0; }
 .param-cards-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
+  gap: 16px;
 }
 .pcard {
   background: var(--surface);
   border: 1px solid var(--border-sub);
-  border-radius: 12px;
-  padding: 18px;
+  border-radius: 11px;
+  padding: 16px;
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  transition: all 0.25s var(--ease-out);
+  transition: all 0.2s var(--ease-out);
 }
 .pcard::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
   background: var(--p-color, var(--cyan));
-  transition: width 0.25s;
+  transition: width 0.2s;
 }
 .pcard:hover {
   border-color: var(--p-color, var(--cyan));
-  transform: translateY(-3px);
-  box-shadow: 0 12px 36px rgba(0,0,0,0.45), 0 0 20px rgba(57,197,187,0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.45);
 }
-.pcard:hover::before { width: 6px; }
+.pcard:hover::before { width: 5px; }
 
 .pcard-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
-.pcard-sym-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+.pcard-sym-title { display: flex; align-items: center; gap: 8px; }
 .pcard-title-text {
   font-family: 'Syne', sans-serif;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
   color: #fff;
 }
 .pcard-badge {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  padding: 2px 7px;
+  font-size: 9.5px;
+  padding: 2px 6px;
   border-radius: 4px;
   font-weight: 700;
 }
@@ -815,40 +692,40 @@ a { text-decoration: none; color: inherit; }
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 .pcard-val {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--p-color, var(--cyan));
 }
 .pcard-band {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--muted);
 }
 .pcard-desc {
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--muted);
   line-height: 1.5;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 .pcard-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 10px;
+  padding-top: 8px;
   border-top: 1px solid var(--border-sub);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10.5px;
+  font-size: 10px;
 }
 .pcard-link {
   color: var(--cyan);
   font-weight: 600;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 
 /* ══ MODAL INSPECTOR ═════════════════════════════════════════════ */
@@ -867,26 +744,26 @@ a { text-decoration: none; color: inherit; }
 .modal-box {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  max-width: 980px;
+  border-radius: 14px;
+  max-width: 960px;
   width: 100%;
   overflow: hidden;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.7);
 }
 .modal-top {
-  padding: 16px 24px;
+  padding: 14px 20px;
   background: var(--surface2);
   border-bottom: 1px solid var(--border-sub);
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-.modal-title-txt { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; color: #fff; }
+.modal-title-txt { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14.5px; color: #fff; }
 .mcls {
   background: transparent;
   border: none;
   color: var(--muted);
-  font-size: 22px;
+  font-size: 20px;
   cursor: pointer;
 }
 .mcls:hover { color: var(--red); }
@@ -894,26 +771,26 @@ a { text-decoration: none; color: inherit; }
 .mimg { width: 100%; aspect-ratio: 1/1; overflow: hidden; background: #000; }
 .mimg img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .minfo {
-  padding: 22px;
+  padding: 20px;
   border-left: 1px solid var(--border-sub);
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 14px;
   overflow-y: auto;
-  max-height: 560px;
+  max-height: 540px;
 }
-.ilbl { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--faint); text-transform: uppercase; letter-spacing: 0.07em; }
-.ival { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.5; margin-top: 3px; }
-.ival.mono { font-family: 'JetBrains Mono', monospace; font-size: 11px; white-space: pre-line; }
+.ilbl { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--faint); text-transform: uppercase; letter-spacing: 0.06em; }
+.ival { font-size: 12.5px; font-weight: 500; color: var(--text); line-height: 1.5; margin-top: 2px; }
+.ival.mono { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; white-space: pre-line; }
 .mbtn {
   margin-top: auto;
   background: rgba(57, 197, 187, 0.15);
   border: 1px solid var(--cyan);
   color: var(--cyan);
   font-weight: 600;
-  font-size: 13px;
-  padding: 10px 16px;
-  border-radius: 8px;
+  font-size: 12.5px;
+  padding: 9px 14px;
+  border-radius: 7px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -921,8 +798,8 @@ a { text-decoration: none; color: inherit; }
 
 /* ══ FOOTER ══════════════════════════════════════════════════════ */
 footer {
-  margin-top: 80px;
-  padding: 26px 48px;
+  margin-top: 70px;
+  padding: 24px 48px;
   border-top: 1px solid var(--border-sub);
   display: flex;
   justify-content: space-between;
@@ -930,14 +807,14 @@ footer {
   background: var(--surface);
 }
 .fb { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 14px; }
-.flinks { display: flex; gap: 18px; }
+.flinks { display: flex; gap: 16px; }
 .flinks a { font-size: 12px; color: var(--faint); transition: color 0.2s; }
 .flinks a:hover { color: var(--text); }
 
 @media(max-width: 1100px) {
   .charts-grid { grid-template-columns: 1fr; }
   .param-cards-grid { grid-template-columns: repeat(2, 1fr); }
-  .map-full-section, .comparison-section, .params-section, .hero-strip, .non-water-alert { margin-left: 20px; margin-right: 20px; padding-left: 20px; padding-right: 20px; }
+  .map-full-section, .comparison-section, .params-section, .page-header { margin-left: 18px; margin-right: 18px; padding-left: 18px; padding-right: 18px; }
 }
 @media(max-width: 760px) {
   .param-cards-grid { grid-template-columns: 1fr; }
@@ -965,39 +842,9 @@ footer {
 
 <main class="main">
 
-  <!-- ══ HERO STRIP ════════════════════════════════════════════════ -->
-  <div class="hero-strip">
-    <div class="hero-eyebrow">
-      <span>🛰</span> Copernicus Sentinel-2 MSI &middot; Landsat-9 TIRS &middot; Geospatial Intelligence
-    </div>
-    <h1 class="hero-title">Satellite Proof Gallery &mdash; Technical Geospatial Map</h1>
-    <p class="hero-sub">
-      A technical geospatial map interface overlaid on a detailed high-resolution satellite image. Six specific environmental parameters are prominently highlighted within the water body using distinct geometric symbols and color gradients to represent concentration levels: Green circles for Algal Activity, Brown triangles for Soil Erosion (TSS), Red squares for Industrial Discharge, Blue arrows and flow vectors for Agricultural Runoff pathways, Purple hexagons for Sewage (BOD), and Colored outlines (Cyan and Yellow) for Environmental Changes like Habitat Loss or New Construction.
-    </p>
-    <div class="hero-meta">
-      <span class="chip chip-cyan">&#9679; 6 Geometric Vector Layers</span>
-      <span class="chip chip-green">&#10003; Automated Water Body Validation</span>
-      <span class="chip chip-yellow">&#9888; CPCB &amp; WHO Compliance Benchmarking</span>
-      <span class="chip chip-blue">&#127760; Pan-India Leaflet Telemetry</span>
-    </div>
-  </div>
-
-  <!-- ══ NON-WATER BODY ALERT MODAL / BANNER ═══════════════════════ -->
-  <div class="non-water-alert" id="non-water-alert">
-    <div class="nwa-header">
-      <div class="nwa-title">
-        <span>⚠️</span> TERRESTRIAL / NON-WATER BODY DETECTED
-      </div>
-      <button class="mcls" onclick="dismissNonWaterAlert()" style="font-size:18px">&times;</button>
-    </div>
-    <div class="nwa-body" id="nwa-msg">
-      The marked coordinate is situated on dry land or terrestrial urban terrain. Multispectral remote sensing water quality indices (NDCI Chlorophyll, TSS Turbidity, Industrial Outfalls, BOD) require an authentic inland water surface (lake, pond, dam, reservoir, or river). Analysis on this point has been suspended to prevent inaccurate spectral calculations.
-    </div>
-    <div class="nwa-actions">
-      <button class="nwa-btn" onclick="selectWaterBody('Chilika Lake', 19.7200, 85.3200)">&#10227; Reset to Chilika Lake</button>
-      <button class="nwa-btn" onclick="selectWaterBody('Hussain Sagar', 17.4239, 78.4738)">&#10227; Reset to Hussain Sagar</button>
-      <button class="nwa-btn" onclick="selectWaterBody('Sardar Sarovar Dam', 21.8310, 73.7480)">&#10227; Reset to Sardar Sarovar</button>
-    </div>
+  <!-- ══ CLEAN PAGE HEADER (Matches other webpages) ═════════════════ -->
+  <div class="page-header">
+    <h1 class="page-title">Satellite Proof Gallery &mdash; Technical Geospatial Map</h1>
   </div>
 
   <!-- ══ SINGLE BIG GEOSPATIAL MAP SECTION ═════════════════════════ -->
@@ -1009,7 +856,7 @@ footer {
         <span>TARGET: <strong id="hud-target-name">Chilika Lake</strong></span>
         <span>LAT: <strong id="hud-lat-val">19.7200</strong>°N</span>
         <span>LON: <strong id="hud-lon-val">85.3200</strong>°E</span>
-        <span>STATUS: <strong style="color:var(--c-algal)">AUTHENTIC WATER BODY</strong></span>
+        <span>STATUS: <strong style="color:var(--c-algal)">ACTIVE TARGET</strong></span>
       </div>
 
       <div class="map-search-inline">
@@ -1019,17 +866,10 @@ footer {
       </div>
     </div>
 
-    <!-- QUICK PRESET CHIPS -->
+    <!-- DYNAMIC PRESETS STRIP (Fed dynamically from Leaflet selection & backend) -->
     <div class="quick-chips-strip">
       <span class="quick-lbl">PRESETS:</span>
-      <button class="qchip active" onclick="selectWaterBody('Chilika Lake', 19.7200, 85.3200)">Chilika Lake (Odisha)</button>
-      <button class="qchip" onclick="selectWaterBody('Hussain Sagar', 17.4239, 78.4738)">Hussain Sagar (Hyderabad)</button>
-      <button class="qchip" onclick="selectWaterBody('Dal Lake', 34.1100, 74.8700)">Dal Lake (Kashmir)</button>
-      <button class="qchip" onclick="selectWaterBody('Sardar Sarovar Dam', 21.8310, 73.7480)">Sardar Sarovar Dam (Gujarat)</button>
-      <button class="qchip" onclick="selectWaterBody('Powai Lake', 19.1250, 72.9050)">Powai Lake (Mumbai)</button>
-      <button class="qchip" onclick="selectWaterBody('Vembanad Lake', 9.6000, 76.4000)">Vembanad Lake (Kerala)</button>
-      <button class="qchip" onclick="selectWaterBody('Loktak Lake', 24.5500, 93.8000)">Loktak Lake (Manipur)</button>
-      <button class="qchip" onclick="selectWaterBody('Ambazari Lake', 21.1292, 79.0394)">Ambazari Lake (Nagpur)</button>
+      <div id="presets-container" class="presets-container"></div>
     </div>
 
     <!-- THE BIG MAP CONTAINER -->
@@ -1039,7 +879,7 @@ footer {
       <!-- 1. Coordinates & Elevation HUD (Top-Left) -->
       <div class="map-hud-box">
         <div>COORDINATE HUD: <span class="hud-accent" id="map-cursor-coords">19.7200° N, 85.3200° E</span></div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">
+        <div style="font-size:9.5px;color:var(--muted);margin-top:2px">
           ELEV: <span style="color:#fff">14m MSL</span> &middot; RES: <span style="color:#fff">10m / px</span> &middot; SENSOR: <span style="color:var(--cyan)">S2-MSI L2A</span>
         </div>
       </div>
@@ -1048,22 +888,18 @@ footer {
       <div class="map-index-badge">
         <div>INDEX: <strong>IND-WR-2026-B</strong></div>
         <div>DATUM: <strong>WGS84</strong> &middot; ORBIT: <strong>S2A-R047</strong></div>
-        <div style="color:var(--cyan)">TILE: 44QND &middot; CLOUD: &lt;3%</div>
+        <div style="color:var(--cyan)" id="map-meta-badge">TILE: 44QND &middot; S2-L2A</div>
       </div>
 
       <!-- 3. North Arrow Compass Rose (Bottom-Left) -->
       <div class="north-arrow-wrap" title="True North Indicator">
         <svg class="north-arrow-svg" viewBox="0 0 100 100">
           <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
-          <!-- Needle North (Cyan) -->
           <polygon points="50,14 42,50 50,44" fill="#39c5bb" />
           <polygon points="50,14 58,50 50,44" fill="#5eead4" />
-          <!-- Needle South (Dark) -->
           <polygon points="50,86 42,50 50,44" fill="#475569" />
           <polygon points="50,86 58,50 50,44" fill="#64748b" />
-          <!-- Center Dot -->
           <circle cx="50" cy="50" r="3.5" fill="#fff" />
-          <!-- N letter -->
           <text x="50" y="10" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="700" fill="#39c5bb" text-anchor="middle">N</text>
         </svg>
       </div>
@@ -1072,7 +908,7 @@ footer {
       <div class="scale-hud-box">
         <div>GEOSPATIAL SCALE: 1:15,000</div>
         <div class="scale-bar-line"></div>
-        <div style="display:flex;justify-content:space-between;font-size:9px;margin-top:2px">
+        <div style="display:flex;justify-content:space-between;font-size:8.5px;margin-top:2px">
           <span>0</span><span>500m</span><span>1000m</span>
         </div>
       </div>
@@ -1234,7 +1070,7 @@ footer {
         <p class="sec-sub">Systematic comparison of detected contaminant levels against CPCB / WHO safe limits, combined with spatial surface area impairment distribution.</p>
       </div>
       <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cyan)">
-        TARGET: <strong id="comp-target-name">Chilika Lake</strong> &middot; STATUS: <strong style="color:var(--red)">ELEVATED RISK</strong>
+        TARGET: <strong id="comp-target-name">Chilika Lake</strong> &middot; STATUS: <strong style="color:var(--red)" id="comp-status-txt">ELEVATED RISK</strong>
       </div>
     </div>
 
@@ -1280,7 +1116,7 @@ footer {
         <div class="sec-eyebrow">Detailed Thematic Index Diagnostics</div>
         <h2 class="sec-title">Six-Parameter Multispectral Scientific Matrix</h2>
       </div>
-      <div style="font-size:12px;color:var(--muted)">
+      <div style="font-size:11.5px;color:var(--muted)">
         Click any card to inspect high-resolution raw satellite spectral proof
       </div>
     </div>
@@ -1291,19 +1127,19 @@ footer {
       <div class="pcard" style="--p-color: var(--c-algal)" onclick="openModal('algal')">
         <div class="pcard-head">
           <div class="pcard-sym-title">
-            <svg width="22" height="22" viewBox="0 0 24 24">
+            <svg width="20" height="20" viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="9" fill="url(#grad-algal)" stroke="#4ade80" stroke-width="2"/>
               <circle cx="12" cy="12" r="3.5" fill="#fff" opacity="0.9"/>
             </svg>
             <span class="pcard-title-text">Algal Activity</span>
           </div>
-          <span class="pcard-badge" style="background:rgba(34,197,94,0.18);color:var(--c-algal)">CRITICAL BLOOM</span>
+          <span class="pcard-badge" id="badge-algal" style="background:rgba(34,197,94,0.18);color:var(--c-algal)">CRITICAL BLOOM</span>
         </div>
         <div class="pcard-val-row">
-          <span class="pcard-val" id="val-algal">54.2 µg/L</span>
-          <span class="pcard-band">NDCI: +0.62</span>
+          <span class="pcard-val" id="val-algal">-- µg/L</span>
+          <span class="pcard-band" id="band-algal">NDCI</span>
         </div>
-        <p class="pcard-desc">
+        <p class="pcard-desc" id="desc-algal">
           Sentinel-2 MSI Red-Edge (B5/B4) absorption identifies severe photosynthetic cyanobacteria concentration.
         </p>
         <div class="pcard-footer">
@@ -1316,18 +1152,18 @@ footer {
       <div class="pcard" style="--p-color: var(--c-erosion)" onclick="openModal('erosion')">
         <div class="pcard-head">
           <div class="pcard-sym-title">
-            <svg width="22" height="22" viewBox="0 0 24 24">
+            <svg width="20" height="20" viewBox="0 0 24 24">
               <polygon points="12,3 21,20 3,20" fill="url(#grad-erosion)" stroke="#f59e0b" stroke-width="2"/>
             </svg>
             <span class="pcard-title-text">Soil Erosion (TSS)</span>
           </div>
-          <span class="pcard-badge" style="background:rgba(217,119,6,0.18);color:var(--c-erosion)">MODERATE</span>
+          <span class="pcard-badge" id="badge-erosion" style="background:rgba(217,119,6,0.18);color:var(--c-erosion)">MODERATE</span>
         </div>
         <div class="pcard-val-row">
-          <span class="pcard-val" id="val-erosion">48.5 mg/L</span>
-          <span class="pcard-band">NDTI: +0.31</span>
+          <span class="pcard-val" id="val-erosion">-- mg/L</span>
+          <span class="pcard-band" id="band-erosion">NDTI</span>
         </div>
-        <p class="pcard-desc">
+        <p class="pcard-desc" id="desc-erosion">
           Normalized Difference Turbidity Index (B4/B3) tracks active sediment detachment and riverine plume influx.
         </p>
         <div class="pcard-footer">
@@ -1340,19 +1176,19 @@ footer {
       <div class="pcard" style="--p-color: var(--c-industrial)" onclick="openModal('thermal')">
         <div class="pcard-head">
           <div class="pcard-sym-title">
-            <svg width="22" height="22" viewBox="0 0 24 24">
+            <svg width="20" height="20" viewBox="0 0 24 24">
               <rect x="3" y="3" width="18" height="18" rx="2" fill="url(#grad-ind)" stroke="#ff0055" stroke-width="2"/>
               <rect x="8" y="8" width="8" height="8" fill="#fff" opacity="0.6"/>
             </svg>
             <span class="pcard-title-text">Industrial Discharge</span>
           </div>
-          <span class="pcard-badge" style="background:rgba(239,68,68,0.18);color:var(--c-industrial)">OUTFLOW ACTIVE</span>
+          <span class="pcard-badge" id="badge-industrial" style="background:rgba(239,68,68,0.18);color:var(--c-industrial)">OUTFLOW ACTIVE</span>
         </div>
         <div class="pcard-val-row">
-          <span class="pcard-val" id="val-industrial">+5.4 &deg;C &Delta;T</span>
-          <span class="pcard-band">TIRS B10</span>
+          <span class="pcard-val" id="val-industrial">-- &deg;C &Delta;T</span>
+          <span class="pcard-band" id="band-industrial">TIRS B10</span>
         </div>
-        <p class="pcard-desc">
+        <p class="pcard-desc" id="desc-industrial">
           Split-window thermal infrared radiometry maps thermal coolant effluent anomalies near plant outfalls.
         </p>
         <div class="pcard-footer">
@@ -1365,18 +1201,18 @@ footer {
       <div class="pcard" style="--p-color: var(--c-runoff)" onclick="openModal('runoff')">
         <div class="pcard-head">
           <div class="pcard-sym-title">
-            <svg width="22" height="22" viewBox="0 0 24 24">
+            <svg width="20" height="20" viewBox="0 0 24 24">
               <path d="M4 12 L16 12 M11 6 L18 12 L11 18" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
             </svg>
             <span class="pcard-title-text">Agricultural Runoff</span>
           </div>
-          <span class="pcard-badge" style="background:rgba(56,189,248,0.18);color:var(--c-runoff)">INFLOW DETECTED</span>
+          <span class="pcard-badge" id="badge-runoff" style="background:rgba(56,189,248,0.18);color:var(--c-runoff)">INFLOW DETECTED</span>
         </div>
         <div class="pcard-val-row">
-          <span class="pcard-val" id="val-runoff">1.4 m/s Flow</span>
-          <span class="pcard-band">DEM Flow Acc</span>
+          <span class="pcard-val" id="val-runoff">--</span>
+          <span class="pcard-band" id="band-runoff">DEM Accumulation</span>
         </div>
-        <p class="pcard-desc">
+        <p class="pcard-desc" id="desc-runoff">
           Topographic slope vectors calculate overland fertilizer and pesticide runoff pathways from nearby agricultural fields.
         </p>
         <div class="pcard-footer">
@@ -1389,18 +1225,18 @@ footer {
       <div class="pcard" style="--p-color: var(--c-sewage)" onclick="openModal('sewage')">
         <div class="pcard-head">
           <div class="pcard-sym-title">
-            <svg width="22" height="22" viewBox="0 0 24 24">
+            <svg width="20" height="20" viewBox="0 0 24 24">
               <polygon points="12,2 21,7 21,17 12,22 3,17 3,7" fill="url(#grad-sewage)" stroke="#c084fc" stroke-width="2"/>
             </svg>
             <span class="pcard-title-text">Sewage (BOD / Hypoxia)</span>
           </div>
-          <span class="pcard-badge" style="background:rgba(168,85,247,0.18);color:var(--c-sewage)">SEVERE ANOXIA</span>
+          <span class="pcard-badge" id="badge-sewage" style="background:rgba(168,85,247,0.18);color:var(--c-sewage)">SEVERE ANOXIA</span>
         </div>
         <div class="pcard-val-row">
-          <span class="pcard-val" id="val-sewage">38.0 mg/L</span>
-          <span class="pcard-band">DO: 2.1 mg/L</span>
+          <span class="pcard-val" id="val-sewage">-- mg/L</span>
+          <span class="pcard-band" id="band-sewage">DO Depletion</span>
         </div>
-        <p class="pcard-desc">
+        <p class="pcard-desc" id="desc-sewage">
           Dissolved oxygen depletion model identifies municipal untreated sewer discharges and benthic dead zones.
         </p>
         <div class="pcard-footer">
@@ -1413,23 +1249,23 @@ footer {
       <div class="pcard" style="--p-color: var(--c-change-cyan)" onclick="openModal('change')">
         <div class="pcard-head">
           <div class="pcard-sym-title">
-            <svg width="22" height="22" viewBox="0 0 24 24">
+            <svg width="20" height="20" viewBox="0 0 24 24">
               <rect x="2" y="2" width="10" height="10" fill="none" stroke="#06b6d4" stroke-width="2" stroke-dasharray="2,2"/>
               <rect x="12" y="12" width="10" height="10" fill="none" stroke="#eab308" stroke-width="2" stroke-dasharray="2,2"/>
             </svg>
             <span class="pcard-title-text">Environmental Changes</span>
           </div>
-          <span class="pcard-badge" style="background:rgba(6,182,212,0.18);color:var(--c-change-cyan)">SHORELINE RETREAT</span>
+          <span class="pcard-badge" id="badge-change" style="background:rgba(6,182,212,0.18);color:var(--c-change-cyan)">SHORELINE RETREAT</span>
         </div>
         <div class="pcard-val-row">
-          <span class="pcard-val" id="val-change">-3.6% Area</span>
-          <span class="pcard-band">CVA Matrix</span>
+          <span class="pcard-val" id="val-change">--</span>
+          <span class="pcard-band" id="band-change">CVA Matrix</span>
         </div>
-        <p class="pcard-desc">
+        <p class="pcard-desc" id="desc-change">
           Multi-temporal Change Vector Analysis outlines habitat loss in cyan and new urban encroachment in yellow.
         </p>
         <div class="pcard-footer">
-          <span>Loss: 6.8 ha</span>
+          <span>Multi-Year Deviation</span>
           <span class="pcard-link">View Proof &rarr;</span>
         </div>
       </div>
@@ -1491,7 +1327,7 @@ footer {
 
 <script>
 /* ─────────────────────────────────────────────────────────────
-   Configuration & State
+   Configuration & Dynamic State
    ───────────────────────────────────────────────────────────── */
 const API_BASE = 'http://localhost:8000';
 
@@ -1501,10 +1337,12 @@ let lakePolygonLayer = null;
 let currentLat       = 19.7200;
 let currentLng       = 85.3200;
 let currentName      = 'Chilika Lake';
-let isWaterValid     = true;
 
 let barChartInstance = null;
 let pieChartInstance = null;
+
+// Dynamic presets tracking: stores selected and nearby water bodies
+let presetLakes = [];
 
 // Layer feature groups
 const layerGroups = {
@@ -1524,7 +1362,7 @@ let searchDebounce = null;
    Boot Setup
    ───────────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
-  // Parse query params or sessionStorage
+  // Read params from URL or session
   const params = new URLSearchParams(window.location.search);
   const qLat = params.get('lat');
   const qLng = params.get('lng');
@@ -1542,6 +1380,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Load recent water bodies from session or initialize with active
+  try {
+    const saved = JSON.parse(sessionStorage.getItem('recent_water_bodies') || '[]');
+    if (Array.isArray(saved)) presetLakes = saved;
+  } catch (_) {}
+
+  // Add initial water body to dynamic presets
+  addOrUpdatePreset(currentName, currentLat, currentLng);
+
   updateHud();
   initBigMap();
   initSearchAutocomplete();
@@ -1558,20 +1405,17 @@ function initBigMap() {
     attributionControl: false
   }).setView([currentLat, currentLng], 12);
 
-  // Add zoom control in top-right below index badge
   L.control.zoom({ position: 'topright' }).addTo(map);
 
-  // High-Resolution Esri World Imagery Basemap
-  const satTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  // Esri World Imagery Basemap
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     maxZoom: 19,
     subdomains: ['server', 'services'],
     attribution: 'Tiles &copy; Esri &middot; Copernicus Sentinel-2'
   }).addTo(map);
 
-  // Add layer groups to map
   Object.values(layerGroups).forEach(g => g.addTo(map));
 
-  // Live Cursor Coordinates HUD
   map.on('mousemove', e => {
     const cEl = document.getElementById('map-cursor-coords');
     if (cEl) {
@@ -1579,14 +1423,13 @@ function initBigMap() {
     }
   });
 
-  // Map Click Listener — Spot Marking & Water Body Validation
+  // Map Click Listener — Universal detection across India
   map.on('click', async e => {
     const { lat, lng } = e.latlng;
     currentLat = lat;
     currentLng = lng;
     updateHud();
 
-    // Place temporary locator marker
     if (clickMarker) map.removeLayer(clickMarker);
     clickMarker = L.circleMarker([lat, lng], {
       radius: 8,
@@ -1594,47 +1437,21 @@ function initBigMap() {
       fillColor: '#3fb950',
       fillOpacity: 0.9,
       weight: 2
-    }).addTo(map).bindTooltip('🛰 Probing Sentinel-2 Gateway...', { permanent: true, direction: 'top' }).openTooltip();
+    }).addTo(map).bindTooltip('🛰 Querying Copernicus Sentinel-2 Gateway...', { permanent: true, direction: 'top' }).openTooltip();
 
-    await validateAndInspectPoint(lat, lng);
+    await inspectPoint(lat, lng);
   });
 }
 
 /* ─────────────────────────────────────────────────────────────
-   2. Water Body Validation & Automated Layer Mapping
+   2. Point Inspection & Dynamic Presets Population
    ───────────────────────────────────────────────────────────── */
-async function validateAndInspectPoint(lat, lng) {
-  const alertEl = document.getElementById('non-water-alert');
-  
+async function inspectPoint(lat, lng) {
   try {
     const res = await fetch(`${API_BASE}/api/detect-lake?lat=${lat}&lon=${lng}`);
-    const data = await res.json();
+    const data = res.ok ? await res.json() : null;
+    currentName = (data && data.name) ? data.name : 'Selected Location';
 
-    if (!res.ok || data.is_water === false) {
-      // NON-WATER BODY DETECTED!
-      isWaterValid = false;
-      alertEl.style.display = 'block';
-      document.getElementById('nwa-msg').innerHTML = `
-        <strong>⚠️ Coordinates (${lat.toFixed(4)}° N, ${lng.toFixed(4)}° E) are situated on terrestrial land or dry ground.</strong><br>
-        Multi-spectral water quality indices (NDCI Chlorophyll, TSS Turbidity, Industrial Outfalls, BOD) require an authentic inland water surface. Please click on a lake, pond, dam, reservoir, or river across India.
-      `;
-      
-      // Update target HUD to reflect terrestrial land
-      document.getElementById('hud-target-name').textContent = `Terrestrial Land (${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E)`;
-      if (clickMarker) {
-        clickMarker.setStyle({ color: '#f85149', fillColor: '#ef4444' });
-        clickMarker.setTooltipContent(`⚠️ Non-Water Body: Land`);
-      }
-
-      // Clear survey layers to prevent fake water data on land
-      clearSurveyLayers();
-      return;
-    }
-
-    // WATER BODY CONFIRMED!
-    isWaterValid = true;
-    alertEl.style.display = 'none';
-    currentName = data.name || `Water Body (${lat.toFixed(3)}°N, ${lng.toFixed(3)}°E)`;
     document.getElementById('hud-target-name').textContent = currentName;
     document.getElementById('comp-target-name').textContent = currentName;
 
@@ -1643,9 +1460,9 @@ async function validateAndInspectPoint(lat, lng) {
       clickMarker.setTooltipContent(`🌊 ${currentName}`);
     }
 
-    // Render Lake Boundary
+    // Render Lake Boundary if available
     if (lakePolygonLayer) map.removeLayer(lakePolygonLayer);
-    if (data.geojson && data.geojson.features && data.geojson.features.length > 0) {
+    if (data && data.geojson && data.geojson.features && data.geojson.features.length > 0) {
       lakePolygonLayer = L.geoJSON(data.geojson, {
         style: {
           color: '#39c5bb',
@@ -1657,24 +1474,78 @@ async function validateAndInspectPoint(lat, lng) {
       }).addTo(map);
     }
 
+    // Add selected location to Presets, and merge any backend nearby lakes
+    addOrUpdatePreset(currentName, lat, lng);
+    if (data && data.nearby && Array.isArray(data.nearby)) {
+      data.nearby.forEach(nb => {
+        if (nb.name && nb.lat && nb.lon) {
+          addPresetIfNew(nb.name, nb.lat, nb.lon);
+        }
+      });
+    }
+    renderPresetsBar();
+
     syncToSession();
     runFullPipeline(lat, lng, currentName);
 
   } catch (err) {
-    console.warn('Lake detection probe fallback:', err);
-    // Graceful fallback for demo
-    isWaterValid = true;
-    alertEl.style.display = 'none';
+    console.warn('Lake detection fallback:', err);
+    currentName = 'Selected Location';
+    addOrUpdatePreset(currentName, lat, lng);
+    renderPresetsBar();
     runFullPipeline(lat, lng, currentName);
   }
 }
 
 /* ─────────────────────────────────────────────────────────────
-   3. Run Full Pipeline: Fetch Satellite Layers & Render Overlays
+   3. Presets Dynamic Management (No hardcoded lakes in HTML)
+   ───────────────────────────────────────────────────────────── */
+function addOrUpdatePreset(name, lat, lon) {
+  presetLakes = presetLakes.filter(p => p.name.toLowerCase() !== name.toLowerCase());
+  presetLakes.unshift({ name, lat: parseFloat(lat), lon: parseFloat(lon) });
+  if (presetLakes.length > 8) presetLakes = presetLakes.slice(0, 8);
+  savePresetsToSession();
+  renderPresetsBar();
+}
+
+function addPresetIfNew(name, lat, lon) {
+  const exists = presetLakes.some(p => p.name.toLowerCase() === name.toLowerCase());
+  if (!exists) {
+    presetLakes.push({ name, lat: parseFloat(lat), lon: parseFloat(lon) });
+    if (presetLakes.length > 8) presetLakes = presetLakes.slice(0, 8);
+    savePresetsToSession();
+  }
+}
+
+function savePresetsToSession() {
+  try {
+    sessionStorage.setItem('recent_water_bodies', JSON.stringify(presetLakes));
+  } catch (_) {}
+}
+
+function renderPresetsBar() {
+  const container = document.getElementById('presets-container');
+  if (!container) return;
+
+  if (presetLakes.length === 0) {
+    container.innerHTML = `<span style="font-size:11px;color:var(--muted)">Mark any location on the map to add target presets</span>`;
+    return;
+  }
+
+  container.innerHTML = presetLakes.map(p => {
+    const isActive = p.name.toLowerCase() === currentName.toLowerCase();
+    return `
+      <button class="qchip ${isActive ? 'active' : ''}" onclick="selectWaterBody('${p.name.replace(/'/g, "\\'")}', ${p.lat}, ${p.lon})">
+        ${isActive ? '🎯' : '🌊'} ${p.name}
+      </button>
+    `;
+  }).join('');
+}
+
+/* ─────────────────────────────────────────────────────────────
+   4. Run Full Pipeline: Fetch Readings from Backend API
    ───────────────────────────────────────────────────────────── */
 async function runFullPipeline(lat, lng, name) {
-  if (!isWaterValid) return;
-
   const today = new Date().toISOString().slice(0, 10);
   const encodedName = encodeURIComponent(name);
 
@@ -1683,255 +1554,545 @@ async function runFullPipeline(lat, lng, name) {
     if (res.ok) {
       const data = await res.json();
       layersData = data.layers || [];
-      updateParameterCards(layersData);
+      
+      // Update Scene Metadata HUD
+      if (data.scene_meta) {
+        if (data.scene_meta.resolution) {
+          document.getElementById('map-meta-badge').innerHTML = `RES: ${data.scene_meta.resolution} &middot; ${data.scene_meta.constellation || 'S2-L2A'}`;
+        }
+        if (data.scene_meta.anomaly_score) {
+          document.getElementById('comp-status-txt').textContent = `RISK: ${data.scene_meta.anomaly_score}`;
+        }
+      }
+
+      // Feed backend readings into cards, charts, and map layers
+      applyBackendReadings(layersData, lat, lng);
+      return;
     }
   } catch (e) {
-    console.warn('Using analytical fallback metrics:', e);
+    console.warn('Backend satellite layers fetch error:', e);
   }
 
-  // Render 6 Geometric Survey Layers & Cartographic Labels
-  renderSurveyLayers(lat, lng);
-  updateChartsWithMetrics(lat, lng);
+  applyBackendReadings([], lat, lng);
 }
 
 /* ─────────────────────────────────────────────────────────────
-   4. Render 6 Geometric Survey Layers & Text Labels on Map
+   5. Helper Extractors for Backend Values
    ───────────────────────────────────────────────────────────── */
-function renderSurveyLayers(cLat, cLng) {
+function getLayerIndicator(layerKey, nameSubstring, fallbackStr) {
+  const layer = layersData.find(l => l.key === layerKey);
+  if (!layer || !layer.indicators) return fallbackStr;
+  const ind = layer.indicators.find(i => i.name.toLowerCase().includes(nameSubstring.toLowerCase()));
+  return ind && ind.value ? ind.value : fallbackStr;
+}
+
+function parseNum(val, fallback) {
+  if (typeof val === 'number') return val;
+  if (!val) return fallback;
+  const match = val.toString().match(/[-+]?[0-9]*\.?[0-9]+/);
+  return match ? parseFloat(match[0]) : fallback;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   6. Apply Backend Readings to Cards, Charts & Map Symbols
+   ───────────────────────────────────────────────────────────── */
+function applyBackendReadings(layers, lat, lng) {
+  // Read exact measurements provided by backend
+  const chlaStr     = getLayerIndicator('algal', 'Chlorophyll', '42.0 µg/L');
+  const chlaNum     = parseNum(chlaStr, 42.0);
+  const ndciStr     = getLayerIndicator('algal', 'NDCI', '+0.55');
+  const bloomStr    = getLayerIndicator('algal', 'Bloom Area', '18.5%');
+  const bloomPct    = parseNum(bloomStr, 18.5);
+
+  const tssStr      = getLayerIndicator('erosion', 'TSS', '35.0 mg/L');
+  const tssNum      = parseNum(tssStr, 35.0);
+  const ndtiStr     = getLayerIndicator('erosion', 'NDTI', '+0.25');
+  const sedimentPct = parseNum(getLayerIndicator('erosion', 'Plume Area', '16%'), 16.0);
+
+  const thermalStr  = getLayerIndicator('thermal', 'Temp. Anomaly', '+4.8°C');
+  const thermalNum  = parseNum(thermalStr, 4.8);
+  const thermalPct  = Math.min(20, Math.round(thermalNum * 2.4));
+
+  const runoffNutStr = getLayerIndicator('runoff', 'Nutrient', 'Risk Score 65');
+  const runoffPct    = 14.0;
+
+  const bodStr      = getLayerIndicator('sewage', 'BOD', '18.0 mg/L');
+  const bodNum      = parseNum(bodStr, 18.0);
+  const doStr       = getLayerIndicator('sewage', 'Minimum DO', '2.5 mg/L');
+  const doNum       = parseNum(doStr, 2.5);
+  const doDeficit   = Math.max(0, +(5.0 - doNum).toFixed(1));
+  const anoxicPct   = parseNum(getLayerIndicator('sewage', 'Anoxic Area', '16%'), 16.0);
+
+  const shoreStr    = getLayerIndicator('change', 'Shoreline', '-3.2%');
+  const shoreLossNum= Math.abs(parseNum(shoreStr, 3.2));
+  const lossAreaStr = getLayerIndicator('change', 'Surface Loss', '−6.0 ha');
+  const habitatPct  = Math.min(15, Math.round(shoreLossNum * 2.2));
+
+  // 1. Update 6 Parameter Cards with backend readings
+  document.getElementById('val-algal').textContent      = chlaStr;
+  document.getElementById('band-algal').textContent     = `NDCI: ${ndciStr}`;
+
+  document.getElementById('val-erosion').textContent    = tssStr;
+  document.getElementById('band-erosion').textContent   = `NDTI: ${ndtiStr}`;
+
+  document.getElementById('val-industrial').textContent = `${thermalStr} ΔT`;
+  document.getElementById('val-runoff').textContent     = runoffNutStr;
+
+  document.getElementById('val-sewage').textContent     = bodStr;
+  document.getElementById('band-sewage').textContent    = `DO: ${doStr}`;
+
+  document.getElementById('val-change').textContent     = `${shoreStr} (${lossAreaStr})`;
+
+  // Update card severity badges
+  const algalLyr = layers.find(l => l.key === 'algal');
+  if (algalLyr && algalLyr.severity) {
+    document.getElementById('badge-algal').textContent = algalLyr.severity;
+  }
+  const erosionLyr = layers.find(l => l.key === 'erosion');
+  if (erosionLyr && erosionLyr.severity) {
+    document.getElementById('badge-erosion').textContent = erosionLyr.severity;
+  }
+
+  // 2. Update Bar Chart with backend measurements vs CPCB standards
+  if (barChartInstance) {
+    barChartInstance.data.datasets[0].data = [chlaNum, tssNum, bodNum, thermalNum, doDeficit];
+    barChartInstance.update();
+  }
+
+  // 3. Update Pie / Doughnut Chart with backend spatial impairment breakdown
+  const cleanPct = Math.max(8, 100 - (bloomPct + sedimentPct + thermalPct + runoffPct + anoxicPct + habitatPct));
+  if (pieChartInstance) {
+    pieChartInstance.data.datasets[0].data = [
+      bloomPct,
+      sedimentPct,
+      thermalPct,
+      runoffPct,
+      anoxicPct,
+      habitatPct,
+      cleanPct
+    ];
+    pieChartInstance.update();
+  }
+
+  // 4. Render map symbols with backend readings — pass both string labels & parsed numbers
+  renderSurveyLayers(lat, lng, {
+    chlaStr,   chlaNum,   bloomPct,
+    tssStr,    tssNum,    sedimentPct,
+    thermalStr,thermalNum,thermalPct,
+    bodStr,    bodNum,    anoxicPct,
+    doStr,     doNum,
+    lossAreaStr, shoreLossNum, habitatPct,
+    runoffNutStr
+  });
+}
+
+/* ─────────────────────────────────────────────────────────────
+   7. Premium Concentration-Scaled Survey Layers on Geospatial Map
+   ───────────────────────────────────────────────────────────── */
+
+/**
+ * Compute symbol size based on concentration value.
+ * base = minimum size, scale = how much it grows per unit, cap = maximum size.
+ */
+function symSize(val, base, scale, cap) {
+  return Math.min(cap, Math.round(base + val * scale));
+}
+
+/**
+ * Compute glow radius / opacity from 0–1 intensity.
+ */
+function symGlow(intensity) {
+  // intensity 0..1
+  const r = Math.round(4 + intensity * 18);
+  const o = (0.45 + intensity * 0.55).toFixed(2);
+  return { r, o };
+}
+
+/**
+ * Place N points around a centre, within the water body polygon,
+ * at radius_deg from centre, with angular offsets.
+ */
+function ringPoints(cLat, cLng, radiusDeg, angles) {
+  return angles.map(a => ({
+    lat: cLat + radiusDeg * Math.sin(a * Math.PI / 180),
+    lng: cLng + radiusDeg * Math.cos(a * Math.PI / 180)
+  }));
+}
+
+function renderSurveyLayers(cLat, cLng, metrics) {
   clearSurveyLayers();
 
-  const delta = 0.015; // Spatial dispersion radius
+  // Compute a spatial radius that keeps all symbols inside the water body.
+  // Typical reservoir ~1 km radius → ~0.009 deg. We use 40-70% of that.
+  const R = 0.008; // ~0.8 km — well inside polygon boundary
 
-  // ── LAYER 1: GREEN CIRCLES — Algal Activity (NDCI / Chl-a) ──
-  const algalPoints = [
-    { lat: cLat + delta * 0.45, lng: cLng + delta * 0.35, val: 58.4, status: 'Critical Bloom' },
-    { lat: cLat - delta * 0.30, lng: cLng + delta * 0.50, val: 49.2, status: 'High Density' },
-    { lat: cLat + delta * 0.15, lng: cLng - delta * 0.40, val: 42.0, status: 'Monitored' },
-    { lat: cLat - delta * 0.55, lng: cLng - delta * 0.25, val: 64.1, status: 'Anoxic Bloom' }
+  // ─── Normalise concentrations to 0–1 intensity ────────────────────
+  const chlaIntensity  = Math.min(1, (metrics.chlaNum  || 42)  / 120);  // 0–120 µg/L
+  const tssIntensity   = Math.min(1, (metrics.tssNum   || 35)  / 100);  // 0–100 mg/L
+  const thermalIntensity = Math.min(1, (metrics.thermalNum || 4.8) / 10); // 0–10 °C
+  const bodIntensity   = Math.min(1, (metrics.bodNum   || 18)  / 30);   // 0–30 mg/L
+  const doIntensity    = Math.min(1, 1 - (metrics.doNum || 2.5) / 9);   // low DO = high intensity
+  const habitatIntensity = Math.min(1, (metrics.habitatPct || 7) / 15); // 0–15%
+
+  const popupStyle = `font-family:'Inter',sans-serif;font-size:12px;padding:8px 10px;line-height:1.7;min-width:200px`;
+  const popHdr = (color, icon, title) =>
+    `<strong style="color:${color};display:block;font-size:13.5px;font-weight:700;margin-bottom:4px;letter-spacing:-0.01em">${icon} ${title}</strong>`;
+
+  // ══════════════════════════════════════════════════════════════════
+  // 🟢  GREEN CIRCLES — Algal Activity (Chlorophyll-a / NDCI)
+  //     Placed: NE, NW, centre-south — inside water body
+  // ══════════════════════════════════════════════════════════════════
+  const algalGlow = symGlow(chlaIntensity);
+  const algalBase = symSize(chlaIntensity, 28, 18, 54); // 28–54px
+  const algalConfigs = [
+    { ...ringPoints(cLat, cLng, R * 0.55, [50])[0],  status: 'Severe Bloom Zone',    intensity: chlaIntensity },
+    { ...ringPoints(cLat, cLng, R * 0.35, [155])[0], status: 'Elevated Density',      intensity: chlaIntensity * 0.75 },
+    { ...ringPoints(cLat, cLng, R * 0.42, [270])[0], status: 'Surface Accumulation',  intensity: chlaIntensity * 0.5 }
   ];
-
-  algalPoints.forEach(p => {
+  algalConfigs.forEach((p, i) => {
+    const sz  = symSize(p.intensity, 26, 20, 52);
+    const half = sz / 2;
+    const ri  = Math.round(sz * 0.43);
+    const ro  = Math.round(sz * 0.28);
+    const rc  = Math.round(sz * 0.11);
+    const op  = (0.3 + p.intensity * 0.5).toFixed(2);
+    const strokeW = (1.5 + p.intensity * 1.5).toFixed(1);
     const icon = L.divIcon({
-      className: 'sym-icon-wrap',
-      html: `
-        <svg class="algal-circle-svg" width="28" height="28" viewBox="0 0 32 32">
-          <circle cx="16" cy="16" r="14" fill="#22c55e" fill-opacity="0.35" stroke="#4ade80" stroke-width="2"/>
-          <circle cx="16" cy="16" r="8" fill="#16a34a" stroke="#fff" stroke-width="1.5"/>
-          <circle cx="16" cy="16" r="3" fill="#fff"/>
-        </svg>
-      `,
-      iconSize: [28, 28],
-      iconAnchor: [14, 14]
+      className: '',
+      html: `<div class="sym-algal" style="width:${sz}px;height:${sz}px">
+        <svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}">
+          <defs>
+            <radialGradient id="ag${i}" cx="50%" cy="40%" r="50%">
+              <stop offset="0%"  stop-color="#86efac" stop-opacity="0.9"/>
+              <stop offset="60%" stop-color="#22c55e" stop-opacity="0.7"/>
+              <stop offset="100%" stop-color="#15803d" stop-opacity="0.2"/>
+            </radialGradient>
+            <filter id="agf${i}">
+              <feGaussianBlur stdDeviation="${(p.intensity * 2.5).toFixed(1)}" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <!-- Outer halo -->
+          <circle cx="${half}" cy="${half}" r="${ri}" fill="url(#ag${i})" filter="url(#agf${i})"/>
+          <!-- Mid ring -->
+          <circle cx="${half}" cy="${half}" r="${ro}" fill="#16a34a" fill-opacity="0.85"
+                  stroke="#4ade80" stroke-width="${strokeW}"/>
+          <!-- Core dot -->
+          <circle cx="${half}" cy="${half}" r="${rc}" fill="#f0fdf4" fill-opacity="0.95"/>
+          <!-- Scanning ring -->
+          <circle class="sym-ring" cx="${half}" cy="${half}" r="${Math.round(ro + 3)}"
+                  fill="none" stroke="#4ade80" stroke-width="1" stroke-opacity="${op}"
+                  stroke-dasharray="${Math.round(ro*0.4)} ${Math.round(ro*0.35)}"/>
+        </svg></div>`,
+      iconSize: [sz, sz],
+      iconAnchor: [half, half]
     });
     L.marker([p.lat, p.lng], { icon })
-      .bindPopup(`
-        <div style="font-family:'Inter',sans-serif;font-size:12px;color:#0d1117;padding:4px">
-          <strong style="color:#16a34a;display:block;font-size:13px">🟢 Algal Activity (NDCI)</strong>
-          <b>Chlorophyll-a:</b> ${p.val} µg/L<br>
-          <b>Status:</b> ${p.status}<br>
-          <b>Band:</b> Sentinel-2 MSI B5/B4
-        </div>
-      `)
+      .bindPopup(`<div style="${popupStyle}">
+        ${popHdr('#22c55e','🟢','Algal Activity — NDCI')}
+        <b>Chlorophyll-a:</b> ${metrics.chlaStr}<br>
+        <b>Bloom Coverage:</b> ${metrics.bloomPct?.toFixed(1) || '—'}%<br>
+        <b>Status:</b> ${p.status}<br>
+        <b>Satellite Band:</b> Sentinel-2 B5/B4<br>
+        <b>Water Body:</b> ${currentName}
+      </div>`)
       .addTo(layerGroups.algal);
   });
 
-  // ── LAYER 2: BROWN TRIANGLES — Soil Erosion (TSS / Turbidity) ─
-  const erosionPoints = [
-    { lat: cLat - delta * 0.70, lng: cLng + delta * 0.15, val: 52.8, status: 'Active Shore Cut' },
-    { lat: cLat + delta * 0.80, lng: cLng - delta * 0.30, val: 46.2, status: 'Sediment Influx' },
-    { lat: cLat - delta * 0.20, lng: cLng + delta * 0.85, val: 39.5, status: 'Plume Transect' }
+  // ══════════════════════════════════════════════════════════════════
+  // 🟤  BROWN TRIANGLES — Soil Erosion / TSS
+  //     Placed: SE and SW — near edge inflows
+  // ══════════════════════════════════════════════════════════════════
+  const erosionConfigs = [
+    { ...ringPoints(cLat, cLng, R * 0.58, [120])[0], status: 'Shoreline Detachment', intensity: tssIntensity },
+    { ...ringPoints(cLat, cLng, R * 0.44, [230])[0], status: 'Tributary Plume',       intensity: tssIntensity * 0.65 }
   ];
-
-  erosionPoints.forEach(p => {
+  erosionConfigs.forEach((p, i) => {
+    const sz   = symSize(p.intensity, 28, 16, 50);
+    const half = sz / 2;
+    const fillOp = (0.7 + p.intensity * 0.3).toFixed(2);
+    const sW     = (1.5 + p.intensity * 2).toFixed(1);
+    const pts    = `${half},${Math.round(sz*0.08)} ${Math.round(sz*0.93)},${Math.round(sz*0.90)} ${Math.round(sz*0.07)},${Math.round(sz*0.90)}`;
+    const ptsi   = `${half},${Math.round(sz*0.38)} ${Math.round(sz*0.73)},${Math.round(sz*0.80)} ${Math.round(sz*0.27)},${Math.round(sz*0.80)}`;
     const icon = L.divIcon({
-      className: 'sym-icon-wrap',
-      html: `
-        <svg class="erosion-triangle-svg" width="28" height="28" viewBox="0 0 32 32">
-          <polygon points="16,3 29,27 3,27" fill="#d97706" fill-opacity="0.85" stroke="#f59e0b" stroke-width="2"/>
-          <polygon points="16,11 23,24 9,24" fill="#78350f"/>
-        </svg>
-      `,
-      iconSize: [28, 28],
-      iconAnchor: [14, 14]
+      className: '',
+      html: `<div class="sym-erosion" style="width:${sz}px;height:${sz}px">
+        <svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}">
+          <defs>
+            <linearGradient id="eg${i}" x1="50%" y1="0%" x2="50%" y2="100%">
+              <stop offset="0%"  stop-color="#fbbf24"/>
+              <stop offset="100%" stop-color="#92400e"/>
+            </linearGradient>
+          </defs>
+          <polygon points="${pts}" fill="url(#eg${i})" fill-opacity="${fillOp}"
+                   stroke="#f59e0b" stroke-width="${sW}" stroke-linejoin="round"/>
+          <polygon points="${ptsi}" fill="#78350f" fill-opacity="0.8"/>
+          <circle cx="${half}" cy="${Math.round(sz*0.62)}" r="${Math.round(sz*0.08)}" fill="#fef3c7"/>
+        </svg></div>`,
+      iconSize: [sz, sz],
+      iconAnchor: [half, half]
     });
     L.marker([p.lat, p.lng], { icon })
-      .bindPopup(`
-        <div style="font-family:'Inter',sans-serif;font-size:12px;color:#0d1117;padding:4px">
-          <strong style="color:#b45309;display:block;font-size:13px">🟤 Soil Erosion (TSS)</strong>
-          <b>Turbidity TSS:</b> ${p.val} mg/L<br>
-          <b>Status:</b> ${p.status}<br>
-          <b>Band:</b> Sentinel-2 Red/Green (B4/B3)
-        </div>
-      `)
+      .bindPopup(`<div style="${popupStyle}">
+        ${popHdr('#d97706','🟤','Soil Erosion — TSS')}
+        <b>Turbidity (TSS):</b> ${metrics.tssStr}<br>
+        <b>Sediment Cover:</b> ${metrics.sedimentPct?.toFixed(1) || '—'}% surface<br>
+        <b>Status:</b> ${p.status}<br>
+        <b>Satellite Band:</b> Sentinel-2 B4/B3<br>
+        <b>Water Body:</b> ${currentName}
+      </div>`)
       .addTo(layerGroups.erosion);
   });
 
-  // ── LAYER 3: RED SQUARES — Industrial Discharge ───────────────
-  const indPoints = [
-    { lat: cLat + delta * 0.60, lng: cLng + delta * 0.70, dt: '+5.8 °C', status: 'Thermal Outfall Active' },
-    { lat: cLat - delta * 0.50, lng: cLng - delta * 0.75, dt: '+4.2 °C', status: 'Industrial Drain' }
+  // ══════════════════════════════════════════════════════════════════
+  // 🟥  RED SQUARES — Industrial Discharge (Thermal Plume)
+  //     Placed: E edge — simulate outfall point
+  // ══════════════════════════════════════════════════════════════════
+  const indConfigs = [
+    { ...ringPoints(cLat, cLng, R * 0.62, [85])[0],  status: 'Thermal Outfall Active',   intensity: thermalIntensity },
+    { ...ringPoints(cLat, cLng, R * 0.28, [100])[0], status: 'Warm Plume Propagation',    intensity: thermalIntensity * 0.6 }
   ];
-
-  indPoints.forEach(p => {
+  indConfigs.forEach((p, i) => {
+    const sz   = symSize(p.intensity, 26, 18, 52);
+    const half = sz / 2;
+    const pad  = Math.round(sz * 0.09);
+    const inn  = Math.round(sz * 0.27);
+    const innSz= Math.round(sz * 0.46);
+    const rot  = 8 * i; // slight rotation per point
+    const sW   = (2 + p.intensity * 2).toFixed(1);
     const icon = L.divIcon({
-      className: 'sym-icon-wrap',
-      html: `
-        <svg class="industrial-square-svg" width="28" height="28" viewBox="0 0 32 32">
-          <rect x="3" y="3" width="26" height="26" rx="3" fill="#ef4444" fill-opacity="0.85" stroke="#ff0055" stroke-width="2.5"/>
-          <rect x="9" y="9" width="14" height="14" fill="#7f1d1d" stroke="#fff" stroke-width="1.2"/>
-        </svg>
-      `,
-      iconSize: [28, 28],
-      iconAnchor: [14, 14]
+      className: '',
+      html: `<div class="sym-industrial" style="width:${sz}px;height:${sz}px">
+        <svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" style="transform:rotate(${rot}deg)">
+          <defs>
+            <radialGradient id="ig${i}" cx="50%" cy="50%" r="50%">
+              <stop offset="0%"  stop-color="#fca5a5"/>
+              <stop offset="50%" stop-color="#ef4444"/>
+              <stop offset="100%" stop-color="#7f1d1d"/>
+            </radialGradient>
+            <filter id="igf${i}">
+              <feGaussianBlur stdDeviation="${(p.intensity * 3).toFixed(1)}" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <rect x="${pad}" y="${pad}" width="${sz-pad*2}" height="${sz-pad*2}" rx="4"
+                fill="url(#ig${i})" stroke="#ff4444" stroke-width="${sW}" filter="url(#igf${i})"/>
+          <rect x="${inn}" y="${inn}" width="${innSz}" height="${innSz}" rx="2"
+                fill="#450a0a" fill-opacity="0.9" stroke="#fca5a5" stroke-width="1"/>
+          <!-- cross-hair -->
+          <line x1="${half}" y1="${inn}" x2="${half}" y2="${inn+innSz}" stroke="#fca5a5" stroke-width="1" stroke-opacity="0.7"/>
+          <line x1="${inn}" y1="${half}" x2="${inn+innSz}" y2="${half}" stroke="#fca5a5" stroke-width="1" stroke-opacity="0.7"/>
+        </svg></div>`,
+      iconSize: [sz, sz],
+      iconAnchor: [half, half]
     });
     L.marker([p.lat, p.lng], { icon })
-      .bindPopup(`
-        <div style="font-family:'Inter',sans-serif;font-size:12px;color:#0d1117;padding:4px">
-          <strong style="color:#dc2626;display:block;font-size:13px">🟥 Industrial Discharge</strong>
-          <b>Thermal Plume:</b> ${p.dt}<br>
-          <b>Status:</b> ${p.status}<br>
-          <b>Sensor:</b> Landsat-9 TIRS B10
-        </div>
-      `)
+      .bindPopup(`<div style="${popupStyle}">
+        ${popHdr('#ef4444','🟥','Industrial Discharge')}
+        <b>Thermal Anomaly:</b> ${metrics.thermalStr}<br>
+        <b>Plume Coverage:</b> ${metrics.thermalPct?.toFixed(1) || '—'}%<br>
+        <b>Status:</b> ${p.status}<br>
+        <b>Sensor:</b> Landsat-9 TIRS B10 (100m→30m)<br>
+        <b>Water Body:</b> ${currentName}
+      </div>`)
       .addTo(layerGroups.industrial);
   });
 
-  // ── LAYER 4: BLUE ARROWS & FLOW VECTORS — Agri Runoff Pathways ──
-  const runoffVectors = [
-    { lat: cLat + delta * 0.90, lng: cLng + delta * 0.10, angle: 140, rate: '1.6 m/s', nut: 'High N+P' },
-    { lat: cLat + delta * 0.75, lng: cLng - delta * 0.60, angle: 125, rate: '1.2 m/s', nut: 'Nitrate Plume' },
-    { lat: cLat - delta * 0.85, lng: cLng + delta * 0.40, angle: 320, rate: '1.4 m/s', nut: 'Fertilizer Influx' }
+  // ══════════════════════════════════════════════════════════════════
+  // ➔  BLUE FLOW ARROWS — Agricultural Runoff Pathway
+  //     Placed: N and NW edge — entry direction arrows
+  // ══════════════════════════════════════════════════════════════════
+  const runoffVecs = [
+    { ...ringPoints(cLat, cLng, R * 0.68, [5])[0],   angle: 165, label: 'N Catchment Inflow' },
+    { ...ringPoints(cLat, cLng, R * 0.52, [320])[0], angle: 130, label: 'NW Tributary Channel' }
   ];
-
-  runoffVectors.forEach(v => {
+  const arrowIntensity = Math.min(1, (metrics.thermalPct || 14) / 20);
+  runoffVecs.forEach((v, i) => {
+    const sz   = symSize(arrowIntensity, 30, 14, 50);
+    const half = sz / 2;
+    const sW   = (2.5 + arrowIntensity * 2).toFixed(1);
+    const tip  = Math.round(sz * 0.12);
+    const bot  = Math.round(sz * 0.85);
+    const lx1  = Math.round(sz * 0.25);
+    const lx2  = Math.round(sz * 0.75);
+    const ly   = Math.round(sz * 0.62);
+    const dotR = Math.round(sz * 0.09);
     const icon = L.divIcon({
-      className: 'sym-icon-wrap',
-      html: `
-        <svg class="runoff-arrow-svg" width="34" height="34" viewBox="0 0 36 36" style="transform: rotate(${v.angle}deg);">
+      className: '',
+      html: `<div class="sym-runoff" style="width:${sz}px;height:${sz}px">
+        <svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}"
+             style="transform:rotate(${v.angle}deg)">
           <defs>
-            <linearGradient id="grad-arrow" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#38bdf8" />
-              <stop offset="100%" stop-color="#1d4ed8" />
+            <linearGradient id="rg${i}" x1="50%" y1="0%" x2="50%" y2="100%">
+              <stop offset="0%"  stop-color="#7dd3fc"/>
+              <stop offset="100%" stop-color="#0284c7"/>
             </linearGradient>
           </defs>
-          <path d="M18 4 L18 28 M10 20 L18 29 L26 20" stroke="url(#grad-arrow)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-          <circle cx="18" cy="6" r="3" fill="#38bdf8" />
-        </svg>
-      `,
-      iconSize: [34, 34],
-      iconAnchor: [17, 17]
+          <!-- shaft -->
+          <line x1="${half}" y1="${tip}" x2="${half}" y2="${bot}"
+                stroke="url(#rg${i})" stroke-width="${sW}" stroke-linecap="round"/>
+          <!-- arrowhead -->
+          <polyline points="${lx1},${ly} ${half},${bot} ${lx2},${ly}"
+                    stroke="#38bdf8" stroke-width="${sW}" fill="none"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- origin dot -->
+          <circle cx="${half}" cy="${tip+dotR}" r="${dotR}" fill="#bae6fd"/>
+        </svg></div>`,
+      iconSize: [sz, sz],
+      iconAnchor: [half, half]
     });
     L.marker([v.lat, v.lng], { icon })
-      .bindPopup(`
-        <div style="font-family:'Inter',sans-serif;font-size:12px;color:#0d1117;padding:4px">
-          <strong style="color:#0284c7;display:block;font-size:13px">➔ Agricultural Runoff Pathway</strong>
-          <b>Flow Velocity:</b> ${v.rate}<br>
-          <b>Nutrient Influx:</b> ${v.nut}<br>
-          <b>Model:</b> SRTM 30m Flow Accumulation
-        </div>
-      `)
+      .bindPopup(`<div style="${popupStyle}">
+        ${popHdr('#38bdf8','➔','Agricultural Runoff Pathway')}
+        <b>Entry Channel:</b> ${v.label}<br>
+        <b>Nutrient Proxy:</b> ${metrics.runoffNutStr}<br>
+        <b>Model:</b> Copernicus DEM + D∞ Flow Accumulation<br>
+        <b>Water Body:</b> ${currentName}
+      </div>`)
       .addTo(layerGroups.runoff);
   });
 
-  // ── LAYER 5: PURPLE HEXAGONS — Sewage (BOD / Hypoxia) ─────────
-  const sewagePoints = [
-    { lat: cLat - delta * 0.40, lng: cLng + delta * 0.20, bod: '42.0 mg/L', do_val: '1.8 mg/L', status: 'Severe Hypoxia' },
-    { lat: cLat + delta * 0.30, lng: cLng - delta * 0.80, bod: '34.5 mg/L', do_val: '2.4 mg/L', status: 'Municipal Sewer Drain' }
+  // ══════════════════════════════════════════════════════════════════
+  // ⬡  PURPLE HEXAGONS — Sewage / BOD / Hypoxia
+  //     Placed: SW and centre — outfall hypoxic cores
+  // ══════════════════════════════════════════════════════════════════
+  const sewageConfigs = [
+    { ...ringPoints(cLat, cLng, R * 0.40, [195])[0], status: 'Hypoxic Core Zone',    intensity: bodIntensity },
+    { ...ringPoints(cLat, cLng, R * 0.22, [10])[0],  status: 'DO Depletion Plume',   intensity: doIntensity * 0.7 }
   ];
-
-  sewagePoints.forEach(s => {
+  sewageConfigs.forEach((p, i) => {
+    const sz   = symSize(p.intensity, 28, 18, 52);
+    const half = sz / 2;
+    const sW   = (1.8 + p.intensity * 2).toFixed(1);
+    // Hexagon points
+    const hp = (cx, cy, r) => Array.from({length:6}, (_,k) => {
+      const a = Math.PI/180 * (60*k - 30);
+      return `${cx + r*Math.cos(a)},${cy + r*Math.sin(a)}`;
+    }).join(' ');
+    const ro = Math.round(sz * 0.44);
+    const ri2 = Math.round(sz * 0.22);
+    const rc2 = Math.round(sz * 0.10);
+    const fillOp = (0.6 + p.intensity * 0.35).toFixed(2);
     const icon = L.divIcon({
-      className: 'sym-icon-wrap',
-      html: `
-        <svg class="sewage-hex-svg" width="30" height="30" viewBox="0 0 32 32">
-          <polygon points="16,2 29,8 29,24 16,30 3,24 3,8" fill="#a855f7" fill-opacity="0.8" stroke="#c084fc" stroke-width="2.2"/>
-          <circle cx="16" cy="16" r="5" fill="#581c87" stroke="#fff" stroke-width="1.2"/>
-        </svg>
-      `,
-      iconSize: [30, 30],
-      iconAnchor: [15, 15]
+      className: '',
+      html: `<div class="sym-sewage" style="width:${sz}px;height:${sz}px">
+        <svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}">
+          <defs>
+            <radialGradient id="sg${i}" cx="50%" cy="40%" r="55%">
+              <stop offset="0%"  stop-color="#e879f9"/>
+              <stop offset="60%" stop-color="#a855f7"/>
+              <stop offset="100%" stop-color="#3b0764"/>
+            </radialGradient>
+            <filter id="sgf${i}">
+              <feGaussianBlur stdDeviation="${(p.intensity * 2.5).toFixed(1)}" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <!-- outer hex -->
+          <polygon points="${hp(half,half,ro)}" fill="url(#sg${i})" fill-opacity="${fillOp}"
+                   stroke="#d946ef" stroke-width="${sW}" filter="url(#sgf${i})"/>
+          <!-- inner hex -->
+          <polygon points="${hp(half,half,ri2)}" fill="#581c87" fill-opacity="0.85"
+                   stroke="#e879f9" stroke-width="1"/>
+          <!-- core -->
+          <circle cx="${half}" cy="${half}" r="${rc2}" fill="#fdf4ff" fill-opacity="0.9"/>
+        </svg></div>`,
+      iconSize: [sz, sz],
+      iconAnchor: [half, half]
     });
-    L.marker([s.lat, s.lng], { icon })
-      .bindPopup(`
-        <div style="font-family:'Inter',sans-serif;font-size:12px;color:#0d1117;padding:4px">
-          <strong style="color:#7e22ce;display:block;font-size:13px">⬡ Sewage &amp; BOD Hypoxia</strong>
-          <b>BOD Level:</b> ${s.bod}<br>
-          <b>Dissolved Oxygen:</b> ${s.do_val}<br>
-          <b>Condition:</b> ${s.status}
-        </div>
-      `)
+    L.marker([p.lat, p.lng], { icon })
+      .bindPopup(`<div style="${popupStyle}">
+        ${popHdr('#a855f7','⬡','Sewage & BOD Hypoxia')}
+        <b>BOD Level:</b> ${metrics.bodStr}<br>
+        <b>Dissolved Oxygen:</b> ${metrics.doStr}<br>
+        <b>Anoxic Area:</b> ${metrics.anoxicPct?.toFixed(1) || '—'}% surface<br>
+        <b>Status:</b> ${p.status}<br>
+        <b>Water Body:</b> ${currentName}
+      </div>`)
       .addTo(layerGroups.sewage);
   });
 
-  // ── LAYER 6: COLORED OUTLINES — Habitat Loss & New Construction ─
-  // Cyan outline: Wetland & Riparian Habitat Loss
-  const habitatPoly = [
-    [cLat + delta * 0.20, cLng - delta * 0.95],
-    [cLat + delta * 0.50, cLng - delta * 0.85],
-    [cLat + delta * 0.65, cLng - delta * 0.55],
-    [cLat + delta * 0.35, cLng - delta * 0.65]
-  ];
-  L.polygon(habitatPoly, {
+  // ══════════════════════════════════════════════════════════════════
+  // 🔲  CYAN + YELLOW OUTLINES — Environmental Changes
+  //     Habitat Loss (Cyan) = W-NW shore polygon
+  //     Construction/Encroachment (Yellow) = E-SE shore polygon
+  // ══════════════════════════════════════════════════════════════════
+  const cW = (1.8 + habitatIntensity * 2.5).toFixed(1);
+  const cfillOp = (0.10 + habitatIntensity * 0.22).toFixed(2);
+
+  // Cyan habitat-loss polygon — W side
+  const hab = [
+    ringPoints(cLat, cLng, R * 0.55, [240])[0],
+    ringPoints(cLat, cLng, R * 0.70, [265])[0],
+    ringPoints(cLat, cLng, R * 0.65, [300])[0],
+    ringPoints(cLat, cLng, R * 0.40, [280])[0]
+  ].map(p => [p.lat, p.lng]);
+  L.polygon(hab, {
     color: '#06b6d4',
-    weight: 2.5,
-    dashArray: '6, 6',
+    weight: parseFloat(cW),
+    dashArray: '6, 4',
     fillColor: '#06b6d4',
-    fillOpacity: 0.2
-  }).bindPopup(`
-    <div style="font-family:'Inter',sans-serif;font-size:12px;color:#0d1117;padding:4px">
-      <strong style="color:#0891b2;display:block;font-size:13px">🔲 Habitat &amp; Wetland Loss (Cyan)</strong>
-      <b>Area Loss:</b> -12.4 ha Riparian Marsh<br>
-      <b>Change Metric:</b> Multi-Temporal CVA
-    </div>
-  `).addTo(layerGroups.changes);
+    fillOpacity: parseFloat(cfillOp)
+  }).bindPopup(`<div style="${popupStyle}">
+    ${popHdr('#06b6d4','🔷','Habitat Loss (Cyan)')}
+    <b>Surface Loss:</b> ${metrics.lossAreaStr}<br>
+    <b>Shoreline Retreat:</b> ${metrics.habitatPct?.toFixed(1) || '—'}%<br>
+    <b>Method:</b> Multi-Temporal CVA<br>
+    <b>Water Body:</b> ${currentName}
+  </div>`).addTo(layerGroups.changes);
 
-  // Yellow outline: New Construction & Urban Encroachment
-  const constPoly = [
-    [cLat - delta * 0.30, cLng + delta * 0.65],
-    [cLat - delta * 0.10, cLng + delta * 0.85],
-    [cLat - delta * 0.35, cLng + delta * 0.95],
-    [cLat - delta * 0.55, cLng + delta * 0.75]
-  ];
-  L.polygon(constPoly, {
+  // Yellow construction/encroachment polygon — E side
+  const conWt = (1.8 + habitatIntensity * 2).toFixed(1);
+  const conFill = (0.12 + habitatIntensity * 0.20).toFixed(2);
+  const con = [
+    ringPoints(cLat, cLng, R * 0.58, [55])[0],
+    ringPoints(cLat, cLng, R * 0.72, [80])[0],
+    ringPoints(cLat, cLng, R * 0.65, [110])[0],
+    ringPoints(cLat, cLng, R * 0.44, [75])[0]
+  ].map(p => [p.lat, p.lng]);
+  L.polygon(con, {
     color: '#eab308',
-    weight: 2.5,
-    dashArray: '4, 4',
+    weight: parseFloat(conWt),
+    dashArray: '4, 5',
     fillColor: '#eab308',
-    fillOpacity: 0.25
-  }).bindPopup(`
-    <div style="font-family:'Inter',sans-serif;font-size:12px;color:#0d1117;padding:4px">
-      <strong style="color:#ca8a04;display:block;font-size:13px">🔲 New Construction / Encroachment (Yellow)</strong>
-      <b>Encroached Fill:</b> +4.8 ha Concrete / Embankment<br>
-      <b>Shoreline Retreat:</b> -3.8% Basin Volume
-    </div>
-  `).addTo(layerGroups.changes);
+    fillOpacity: parseFloat(conFill)
+  }).bindPopup(`<div style="${popupStyle}">
+    ${popHdr('#eab308','🟡','Shoreline Encroachment (Yellow)')}
+    <b>Construction Fill:</b> Artificial Embankment<br>
+    <b>Method:</b> Sentinel-2 CVA 2014–2026<br>
+    <b>Water Body:</b> ${currentName}
+  </div>`).addTo(layerGroups.changes);
 
-  // ── CARTOGRAPHIC TEXT LABELS FOR AFFECTED AREAS ───────────────
-  const labels = [
-    { lat: cLat + delta * 0.95, lng: cLng + delta * 0.15, text: '🌾 Agri Fields Catchment', cls: 'agri' },
-    { lat: cLat + delta * 0.70, lng: cLng + delta * 0.80, text: '🏭 Industrial Zone Outfalls', cls: 'industrial' },
-    { lat: cLat - delta * 0.45, lng: cLng + delta * 0.30, text: '🏙️ Urban Outfalls & Sewers', cls: 'urban' },
-    { lat: cLat,                lng: cLng,                text: '🌊 Deep Benthic Core Zone', cls: 'benthic' },
-    { lat: cLat + delta * 0.30, lng: cLng - delta * 0.85, text: '🌿 Riparian Wetland Buffer', cls: 'wetland' }
+  // ── Cartographic Labels ────────────────────────────────────────────
+  const labelStyle = `font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;
+    color:#e6edf3;background:rgba(9,13,19,0.82);padding:2px 7px;
+    border-radius:4px;white-space:nowrap;pointer-events:none;
+    border:1px solid rgba(255,255,255,0.08);letter-spacing:0.04em`;
+  const lblDefs = [
+    { pt: ringPoints(cLat, cLng, R * 0.80, [5])[0],  txt: '🌾 AGRI CATCHMENT INFLOW',    color: '#38bdf8' },
+    { pt: ringPoints(cLat, cLng, R * 0.72, [90])[0], txt: '🏭 INDUSTRIAL OUTFALL ZONE',  color: '#f87171' },
+    { pt: ringPoints(cLat, cLng, R * 0.68, [200])[0],txt: '🏙 URBAN SEWAGE NODES',       color: '#c084fc' },
+    { pt: { lat: cLat,    lng: cLng },                txt: `🌊 ${currentName}`,           color: '#39c5bb' },
+    { pt: ringPoints(cLat, cLng, R * 0.58, [290])[0],txt: '🌿 RIPARIAN BUFFER ZONE',     color: '#4ade80' }
   ];
-
-  labels.forEach(lbl => {
+  lblDefs.forEach(l => {
     const icon = L.divIcon({
-      className: `map-carto-label ${lbl.cls}`,
-      html: lbl.text,
+      className: '',
+      html: `<span style="${labelStyle};color:${l.color}">${l.txt}</span>`,
       iconSize: null,
-      iconAnchor: [60, 10]
+      iconAnchor: [60, 9]
     });
-    L.marker([lbl.lat, lbl.lng], { icon, interactive: false }).addTo(layerGroups.labels);
+    L.marker([l.pt.lat, l.pt.lng], { icon, interactive: false }).addTo(layerGroups.labels);
   });
 }
+
 
 function clearSurveyLayers() {
   Object.values(layerGroups).forEach(g => g.clearLayers());
 }
 
 /* ─────────────────────────────────────────────────────────────
-   5. Toggle Layers from Corner Legend
+   8. Toggle Layers from Corner Legend
    ───────────────────────────────────────────────────────────── */
 function toggleLayer(layerKey) {
   const chk = document.getElementById(`chk-${layerKey}`);
@@ -1960,10 +2121,10 @@ function toggleLegendCollapse() {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   6. Chart.js Comparison Section: Bar Graph & Pie Chart
+   9. Chart.js Comparison Section: Bar Graph & Pie Chart
    ───────────────────────────────────────────────────────────── */
 function initCharts() {
-  // 1. Bar Chart: Parameter Concentration vs CPCB Safe Limits
+  // Bar Chart
   const ctxBar = document.getElementById('bar-chart-canvas').getContext('2d');
   barChartInstance = new Chart(ctxBar, {
     type: 'bar',
@@ -1978,11 +2139,11 @@ function initCharts() {
       datasets: [
         {
           label: 'Measured Satellite Level',
-          data: [54.2, 48.5, 38.0, 5.4, 4.9],
+          data: [42.0, 35.0, 18.0, 4.8, 2.5],
           backgroundColor: 'rgba(239, 68, 68, 0.75)',
           borderColor: '#ef4444',
           borderWidth: 1.5,
-          borderRadius: 6
+          borderRadius: 5
         },
         {
           label: 'CPCB / WHO Safe Limit',
@@ -1990,7 +2151,7 @@ function initCharts() {
           backgroundColor: 'rgba(34, 197, 94, 0.65)',
           borderColor: '#22c55e',
           borderWidth: 1.5,
-          borderRadius: 6
+          borderRadius: 5
         }
       ]
     },
@@ -2001,10 +2162,7 @@ function initCharts() {
       plugins: {
         legend: {
           position: 'top',
-          labels: {
-            color: '#e6edf3',
-            font: { family: 'Inter', size: 12, weight: '500' }
-          }
+          labels: { color: '#e6edf3', font: { family: 'Inter', size: 12, weight: '500' } }
         },
         tooltip: {
           backgroundColor: 'rgba(18, 24, 32, 0.95)',
@@ -2012,23 +2170,23 @@ function initCharts() {
           bodyColor: '#e6edf3',
           borderColor: '#30363d',
           borderWidth: 1,
-          padding: 10
+          padding: 9
         }
       },
       scales: {
         x: {
           grid: { color: 'rgba(255,255,255,0.06)' },
-          ticks: { color: '#8b949e', font: { family: 'JetBrains Mono', size: 10.5 } }
+          ticks: { color: '#8b949e', font: { family: 'JetBrains Mono', size: 10 } }
         },
         y: {
           grid: { color: 'rgba(255,255,255,0.06)' },
-          ticks: { color: '#8b949e', font: { family: 'JetBrains Mono', size: 11 } }
+          ticks: { color: '#8b949e', font: { family: 'JetBrains Mono', size: 10.5 } }
         }
       }
     }
   });
 
-  // 2. Pie / Doughnut Chart: Surface Area Impairment Distribution
+  // Pie / Doughnut Chart
   const ctxPie = document.getElementById('pie-chart-canvas').getContext('2d');
   pieChartInstance = new Chart(ctxPie, {
     type: 'doughnut',
@@ -2043,19 +2201,19 @@ function initCharts() {
         'Unimpaired / Pristine Water'
       ],
       datasets: [{
-        data: [24, 18, 12, 16, 14, 8, 8],
+        data: [20, 16, 12, 14, 16, 8, 14],
         backgroundColor: [
-          '#22c55e', // Green
-          '#d97706', // Brown
-          '#ef4444', // Red
-          '#38bdf8', // Blue
-          '#a855f7', // Purple
-          '#06b6d4', // Cyan
-          '#334155'  // Dark slate (clean)
+          '#22c55e',
+          '#d97706',
+          '#ef4444',
+          '#38bdf8',
+          '#a855f7',
+          '#06b6d4',
+          '#334155'
         ],
         borderColor: '#121820',
         borderWidth: 2,
-        hoverOffset: 8
+        hoverOffset: 6
       }]
     },
     options: {
@@ -2067,9 +2225,9 @@ function initCharts() {
           position: 'right',
           labels: {
             color: '#e6edf3',
-            font: { family: 'Inter', size: 11 },
-            boxWidth: 12,
-            padding: 12
+            font: { family: 'Inter', size: 10.5 },
+            boxWidth: 11,
+            padding: 10
           }
         },
         tooltip: {
@@ -2089,61 +2247,8 @@ function initCharts() {
   });
 }
 
-function updateChartsWithMetrics(lat, lng) {
-  // Deterministic seed for location
-  const seed = intSeed(lat, lng);
-  const chla = (40 + (seed % 28)).toFixed(1);
-  const tss  = (32 + (seed % 26)).toFixed(1);
-  const bod  = (28 + (seed % 20)).toFixed(1);
-  const dt   = (4.2 + (seed % 4) * 0.4).toFixed(1);
-  const dodef = (3.5 + (seed % 3) * 0.5).toFixed(1);
-
-  if (barChartInstance) {
-    barChartInstance.data.datasets[0].data = [parseFloat(chla), parseFloat(tss), parseFloat(bod), parseFloat(dt), parseFloat(dodef)];
-    barChartInstance.update();
-  }
-
-  // Slice percentages
-  const pAlgal = 20 + (seed % 8);
-  const pTss   = 16 + (seed % 6);
-  const pInd   = 10 + (seed % 5);
-  const pRun   = 14 + (seed % 5);
-  const pSew   = 12 + (seed % 6);
-  const pLoss  = 8  + (seed % 4);
-  const pClean = Math.max(6, 100 - (pAlgal + pTss + pInd + pRun + pSew + pLoss));
-
-  if (pieChartInstance) {
-    pieChartInstance.data.datasets[0].data = [pAlgal, pTss, pInd, pRun, pSew, pLoss, pClean];
-    pieChartInstance.update();
-  }
-
-  // Update card labels
-  document.getElementById('val-algal').textContent = `${chla} µg/L`;
-  document.getElementById('val-erosion').textContent = `${tss} mg/L`;
-  document.getElementById('val-industrial').textContent = `+${dt} °C ΔT`;
-  document.getElementById('val-sewage').textContent = `${bod} mg/L`;
-}
-
-function updateParameterCards(layers) {
-  // If backend returns layer indicators, update live cards
-  const algalLyr = layers.find(l => l.key === 'algal');
-  if (algalLyr && algalLyr.indicators) {
-    const chla = algalLyr.indicators.find(i => i.name.includes('Chlorophyll'));
-    if (chla) document.getElementById('val-algal').textContent = chla.value;
-  }
-  const erosionLyr = layers.find(l => l.key === 'erosion');
-  if (erosionLyr && erosionLyr.indicators) {
-    const tss = erosionLyr.indicators.find(i => i.name.includes('TSS'));
-    if (tss) document.getElementById('val-erosion').textContent = tss.value;
-  }
-}
-
-function intSeed(lat, lng) {
-  return Math.abs(Math.round(lat * 1000 + lng * 100)) % 100;
-}
-
 /* ─────────────────────────────────────────────────────────────
-   7. Water Body Search & Autocomplete
+   10. Search Autocomplete
    ───────────────────────────────────────────────────────────── */
 function initSearchAutocomplete() {
   const input = document.getElementById('water-search-input');
@@ -2176,7 +2281,7 @@ function initSearchAutocomplete() {
           `).join('');
           dropdown.style.display = 'block';
         } else {
-          dropdown.innerHTML = `<div class="s-item" style="color:var(--faint);font-size:12px">No specific lake or reservoir match found. You can mark directly on the map.</div>`;
+          dropdown.innerHTML = `<div class="s-item" style="color:var(--faint);font-size:11.5px">No specific water body match found. You can mark directly on the map.</div>`;
           dropdown.style.display = 'block';
         }
       } catch (_) {
@@ -2207,26 +2312,18 @@ function onSearchResultClick(name, lat, lon) {
 
 function selectWaterBody(name, lat, lon) {
   currentName = name;
-  currentLat  = lat;
-  currentLng  = lon;
+  currentLat  = parseFloat(lat);
+  currentLng  = parseFloat(lon);
 
-  // Highlight active preset chip
-  document.querySelectorAll('.qchip').forEach(btn => {
-    if (btn.textContent.includes(name.split(' ')[0])) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
-  });
-
+  addOrUpdatePreset(name, lat, lon);
   updateHud();
   syncToSession();
 
   if (map) {
-    map.flyTo([lat, lon], 13, { duration: 1.2 });
+    map.flyTo([currentLat, currentLng], 13, { duration: 1.2 });
     if (clickMarker) map.removeLayer(clickMarker);
-    clickMarker = L.circleMarker([lat, lon], {
-      radius: 9,
+    clickMarker = L.circleMarker([currentLat, currentLng], {
+      radius: 8,
       color: '#39c5bb',
       fillColor: '#3fb950',
       fillOpacity: 0.85,
@@ -2234,7 +2331,7 @@ function selectWaterBody(name, lat, lon) {
     }).addTo(map).bindTooltip(`🛰 ${name}`, { permanent: true, direction: 'top' }).openTooltip();
   }
 
-  validateAndInspectPoint(lat, lon);
+  inspectPoint(currentLat, currentLng);
 }
 
 function updateHud() {
@@ -2250,12 +2347,8 @@ function syncToSession() {
   sessionStorage.setItem('pin_lon', currentLng.toFixed(5));
 }
 
-function dismissNonWaterAlert() {
-  document.getElementById('non-water-alert').style.display = 'none';
-}
-
 /* ─────────────────────────────────────────────────────────────
-   8. Modal Inspector
+   11. Modal Inspector
    ───────────────────────────────────────────────────────────── */
 function openModal(key) {
   const layer = layersData.find(l => l.key === key) || {
@@ -2284,7 +2377,7 @@ function openModal(key) {
 
   if (layer.indicators) {
     document.getElementById('modal-indicators').innerHTML = layer.indicators.map(ind => `
-      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-sub);font-family:'JetBrains Mono',monospace;font-size:11px">
+      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border-sub);font-family:'JetBrains Mono',monospace;font-size:10.5px">
         <span style="color:var(--muted)">${ind.name}</span>
         <span style="font-weight:600;color:${ind.color || 'var(--text)'}">${ind.value}</span>
       </div>
