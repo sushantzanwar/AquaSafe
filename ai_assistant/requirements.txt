@@ -1,0 +1,8 @@
+google-generativeai
+langchain-google-genai
+langchain
+langchain-community
+chromadb
+fastapi
+uvicorn
+pydantic
