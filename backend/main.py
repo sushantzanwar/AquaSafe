@@ -795,9 +795,6 @@ async def get_geojson(analysis_id: str):
         raise HTTPException(status_code=404, detail="Analysis not found")
     return _osm_cache.get(f"name:{analysis_data['water_body']}", _empty_geojson(analysis_data['water_body']))
 
-# Mount frontend directory for direct single-port access
-if os.path.isdir(FRONTEND_DIR):
-    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SATELLITE PROOF & THEMATIC API GATEWAY ENDPOINTS
@@ -900,6 +897,11 @@ async def get_satellite_image_endpoint(
 ):
     img_bytes = render_thematic_layer_image(mode, lat=lat, lng=lng, date_str=date, water_body=water_body)
     return Response(content=img_bytes, media_type="image/jpeg")
+
+
+# Mount frontend directory for direct single-port access (placed AFTER all API routes)
+if os.path.isdir(FRONTEND_DIR):
+    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
 
 
 if __name__ == "__main__":
