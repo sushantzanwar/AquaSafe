@@ -592,14 +592,22 @@ footer {
 </div>
 
 <!-- ══ WATER BODY SELECTOR ══ -->
-<div style="display:flex;align-items:center;gap:16px;padding:16px 40px;background:var(--surface);border-bottom:1px solid var(--border-sub);">
-  <span style="font-family:'JetBrains Mono';font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">Select Water Body →</span>
-  <select id="wb-select" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:7px 14px;font-size:13px;font-family:'JetBrains Mono';cursor:pointer;outline:none;">
-    <option value="">-- Loading water bodies... --</option>
+<div style="display:flex;align-items:center;gap:12px;padding:14px 40px;background:var(--surface);border-bottom:1px solid var(--border-sub);flex-wrap:wrap;">
+  <span style="font-family:'JetBrains Mono';font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">Active Target →</span>
+  <span id="active-target-badge" style="color:var(--green);font-weight:700;font-size:13.5px;background:rgba(63,185,80,0.12);padding:6px 14px;border-radius:6px;border:1px solid rgba(63,185,80,0.3)">Click map to detect any water body</span>
+  <select id="wb-select" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:7px 14px;font-size:13px;font-family:'JetBrains Mono';cursor:pointer;outline:none;" title="Quick selection">
+    <option value="">-- Recent / Nearby Water Bodies --</option>
   </select>
+  <div style="position:relative;display:inline-block;">
+    <input type="text" id="dash-search-input" placeholder="🔍 Search any lake/dam/pond in India..." style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:7px 12px;font-size:12.5px;font-family:'Inter',sans-serif;outline:none;width:260px;">
+    <div id="dash-search-results" style="position:absolute;top:100%;left:0;right:0;z-index:2000;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-top:4px;max-height:220px;overflow-y:auto;display:none;box-shadow:0 8px 30px rgba(0,0,0,0.5);"></div>
+  </div>
   <button id="analyze-btn" onclick="runAnalysis()" style="background:var(--green);color:#000;border:none;border-radius:6px;padding:8px 20px;font-weight:700;font-size:13px;cursor:pointer;font-family:'Syne',sans-serif;transition:background 0.2s;" onmouseover="this.style.background='#46c957'" onmouseout="this.style.background='var(--green)'">
-    ▶ Analyze
+    ▶ Re-Analyze
   </button>
+  <a id="dash-sat-proof-btn" href="satellite-proof.html" class="btn-gateway" style="font-size:12.5px;padding:7px 14px;background:rgba(57,197,187,0.15);border:1px solid rgba(57,197,187,0.4);color:var(--cyan);text-decoration:none;display:inline-flex;align-items:center;gap:6px;border-radius:6px;">
+    🛰 6-Layer Proof Gallery →
+  </a>
   <span id="analyze-status" style="font-size:12px;color:var(--muted);font-family:'JetBrains Mono';"></span>
 </div>
 
@@ -731,30 +739,46 @@ const API = 'http://localhost:8000';
 let activeLayer = 'RGB';
 let zoneLayer = null;
 
-// Default view: Nagpur, India (where Ambazari/Futala/Gorewada lakes are)
-const map = L.map('map', { zoomControl: true }).setView([21.15, 79.09], 12);
+// Default view: check session or India center
+const defLat = parseFloat(sessionStorage.getItem('pin_lat')) || 20.5937;
+const defLng = parseFloat(sessionStorage.getItem('pin_lon')) || 78.9629;
+const defZoom = sessionStorage.getItem('pin_lat') ? 13 : 5;
+
+const map = L.map('map', { zoomControl: true }).setView([defLat, defLng], defZoom);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · AquaWatch',
   maxZoom: 19
 }).addTo(map);
 document.getElementById('map').style.filter = 'invert(1) hue-rotate(180deg) brightness(0.85) saturate(0.9)';
+
+function updateSatProofBtn(name, lat, lon) {
+  const btn = document.getElementById('dash-sat-proof-btn');
+  if (btn) {
+    btn.href = `satellite-proof.html?lat=${lat}&lng=${lon}&name=${encodeURIComponent(name)}`;
+  }
+}
 
 map.on('mousemove', e => {
   document.getElementById('coord-hud').innerHTML =
     `LAT: ${e.latlng.lat.toFixed(4)}<br>LON: ${e.latlng.lng.toFixed(4)}<br>LAYER: ${activeLayer}`;
 });
 
-// ── MAP CLICK → OSM LAKE DETECTION ─────────────────────────────────
+// ── MAP CLICK → OSM LAKE DETECTION & INSTANT FULL PIPELINE ─────────
 let clickMarker = null;
+let selectedLat = null;
+let selectedLng = null;
+
 map.on('click', async e => {
   const { lat, lng } = e.latlng;
+  selectedLat = lat;
+  selectedLng = lng;
 
-  // Drop a pulsing marker immediately for feedback
+  // Drop a permanent target marker at the exact clicked coordinate
   if (clickMarker) map.removeLayer(clickMarker);
   clickMarker = L.circleMarker([lat, lng], {
-    radius: 8, color: '#58a6ff', fillColor: '#58a6ff',
-    fillOpacity: 0.5, weight: 2
-  }).bindTooltip('🔍 Detecting lake…', { permanent: true, direction: 'top' }).addTo(map);
+    radius: 9, color: '#3fb950', fillColor: '#3fb950',
+    fillOpacity: 0.85, weight: 2
+  }).bindTooltip('🔍 Interrogating Copernicus Gateway…', { permanent: true, direction: 'top' }).addTo(map);
   clickMarker.openTooltip();
 
   sessionStorage.setItem('pin_lat', lat.toFixed(5));
@@ -762,39 +786,97 @@ map.on('click', async e => {
 
   try {
     const res = await fetch(`${API}/api/detect-lake?lat=${lat}&lon=${lng}`);
-    if (!res.ok) {
-      const err = await res.json();
-      clickMarker.setTooltipContent(`❌ ${err.detail || 'No lake found here'}`);
-      setTimeout(() => { if (clickMarker) { map.removeLayer(clickMarker); clickMarker = null; } }, 3000);
-      return;
-    }
-    const lake = await res.json();
+    const lake = res.ok ? await res.json() : { name: `Water Body (${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E)` };
 
-    // Update tooltip with detected lake name
-    clickMarker.setTooltipContent(`✅ ${lake.name}`);
-    setTimeout(() => { if (clickMarker) { map.removeLayer(clickMarker); clickMarker = null; } }, 2500);
+    // Update tooltip with detected lake name — Keep marker permanently visible on click target
+    clickMarker.setTooltipContent(`📍 ${lake.name}`);
 
-    // Draw the real OSM polygon
+    // Draw the OSM polygon outline if available, but NEVER displace camera away from click target
     if (zoneLayer) { map.removeLayer(zoneLayer); zoneLayer = null; }
     if (lake.geojson && lake.geojson.features && lake.geojson.features.length > 0) {
       zoneLayer = L.geoJSON(lake.geojson, {
-        style: { color: '#58a6ff', weight: 2, opacity: 0.9,
-                 fillColor: '#58a6ff', fillOpacity: 0.2, dashArray: '6 4' }
+        style: { color: '#3fb950', weight: 2, opacity: 0.9,
+                 fillColor: '#3fb950', fillOpacity: 0.22, dashArray: '6 4' }
       }).addTo(map);
-      zoneLayer.bindTooltip(`${lake.name} — click Analyze`);
-      map.fitBounds(zoneLayer.getBounds(), { padding: [60, 60], maxZoom: 15 });
-    } else if (lake.centroid) {
-      map.setView([lake.centroid.lat, lake.centroid.lon], 14);
+      zoneLayer.bindTooltip(lake.name);
     }
 
-    // Rebuild dropdown: detected lake is the selection, nearby are in group
+    sessionStorage.setItem('water_body', lake.name);
+    updateSatProofBtn(lake.name, lat, lng);
+
+    const targetBadge = document.getElementById('active-target-badge');
+    if (targetBadge) targetBadge.textContent = lake.name;
+
+    // Rebuild dropdown: detected lake is the selection
     rebuildDropdownFromDetection(lake);
 
+    // INSTANTLY RUN ANALYSIS FOR THIS EXACT WATER BODY AND COORDINATE!
+    await runAnalysis(lake.name, lat, lng);
+
   } catch (err) {
-    clickMarker.setTooltipContent(`⚠ Backend unreachable`);
-    setTimeout(() => { if (clickMarker) { map.removeLayer(clickMarker); clickMarker = null; } }, 3000);
+    const fallbackName = `Water Body (${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E)`;
+    clickMarker.setTooltipContent(`📍 ${fallbackName}`);
+    await runAnalysis(fallbackName, lat, lng);
   }
 });
+
+/* ── SEARCH AUTOCOMPLETE OVER MAP ─────────────────── */
+const dashSearchInput = document.getElementById('dash-search-input');
+const dashSearchResults = document.getElementById('dash-search-results');
+let dashSearchDebounce = null;
+if (dashSearchInput && dashSearchResults) {
+  dashSearchInput.addEventListener('input', () => {
+    const q = dashSearchInput.value.trim();
+    if (q.length < 2) {
+      dashSearchResults.style.display = 'none';
+      return;
+    }
+    clearTimeout(dashSearchDebounce);
+    dashSearchDebounce = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API}/api/search-water-body?q=${encodeURIComponent(q)}&country=in`);
+        if (!res.ok) return;
+        const list = await res.json();
+        if (list && list.length > 0) {
+          dashSearchResults.innerHTML = list.map(item => `
+            <div style="padding:8px 12px;border-bottom:1px solid var(--border-sub);cursor:pointer;font-size:12px;color:var(--blue);"
+                 onclick="selectDashSearchResult('${item.name.replace(/'/g, "\\'")}', ${item.lat}, ${item.lon})">
+              <strong>${item.name}</strong>
+              <div style="font-size:10.5px;color:var(--muted);">${item.display_name || ''}</div>
+            </div>
+          `).join('');
+          dashSearchResults.style.display = 'block';
+        } else {
+          dashSearchResults.style.display = 'none';
+        }
+      } catch (_) {
+        dashSearchResults.style.display = 'none';
+      }
+    }, 250);
+  });
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#dash-search-input')) {
+      dashSearchResults.style.display = 'none';
+    }
+  });
+}
+
+function selectDashSearchResult(name, lat, lon) {
+  dashSearchInput.value = name;
+  dashSearchResults.style.display = 'none';
+  sessionStorage.setItem('pin_lat', lat.toFixed(5));
+  sessionStorage.setItem('pin_lon', lon.toFixed(5));
+  sessionStorage.setItem('water_body', name);
+  updateSatProofBtn(name, lat, lon);
+  map.flyTo([lat, lon], 13);
+  if (clickMarker) map.removeLayer(clickMarker);
+  clickMarker = L.circleMarker([lat, lon], {
+    radius: 8, color: '#3fb950', fillColor: '#3fb950', fillOpacity: 0.6, weight: 2
+  }).bindTooltip(`✅ ${name}`, { permanent: true, direction: 'top' }).addTo(map).openTooltip();
+
+  rebuildDropdownFromDetection({ name: name, centroid: { lat, lon } });
+  runAnalysis();
+}
 
 function setLayer(btn, layer) {
   activeLayer = layer;
@@ -919,9 +1001,27 @@ function rebuildNearby(selected, allBodies, nearby) {
 
 // ── FETCH WATER BODIES NEAR MAP CENTRE ──────────────────────────────
 async function fetchWaterBodies() {
+  const savedWb = sessionStorage.getItem('water_body');
+  const savedLat = parseFloat(sessionStorage.getItem('pin_lat'));
+  const savedLon = parseFloat(sessionStorage.getItem('pin_lon'));
+
+  if (savedWb) {
+    const targetBadge = document.getElementById('active-target-badge');
+    if (targetBadge) targetBadge.textContent = savedWb;
+    if (savedLat && savedLon && map) {
+      map.setView([savedLat, savedLon], 13);
+      if (clickMarker) map.removeLayer(clickMarker);
+      clickMarker = L.circleMarker([savedLat, savedLon], {
+        radius: 9, color: '#3fb950', fillColor: '#3fb950', fillOpacity: 0.6, weight: 2
+      }).bindTooltip(`🛰 ${savedWb}`, { permanent: true, direction: 'top' }).addTo(map);
+      updateSatProofBtn(savedWb, savedLat, savedLon);
+    }
+    runAnalysis(savedWb);
+  }
+
   const centre = map.getCenter();
   try {
-    const res = await fetch(`${API}/api/water-bodies?lat=${centre.lat}&lon=${centre.lng}&radius_km=20`);
+    const res = await fetch(`${API}/api/water-bodies?lat=${centre.lat}&lon=${centre.lng}&radius_km=25`);
     const data = await res.json();
 
     const bodies = Array.isArray(data) ? data : (data.water_bodies || []);
@@ -930,11 +1030,12 @@ async function fetchWaterBodies() {
 
     buildDropdown(bodies, nearby);
 
-    // Auto-select + preview the first lake
-    if (bodies.length > 0) {
+    // If no saved water body, auto-select + analyze first lake
+    if (!savedWb && bodies.length > 0) {
       document.getElementById('wb-select').value = bodies[0];
       previewLake(bodies[0]);
       rebuildNearby(bodies[0], bodies, nearby);
+      runAnalysis(bodies[0]);
     }
 
     // If meta includes lat/lon, zoom to first lake
@@ -952,29 +1053,41 @@ async function fetchWaterBodies() {
 }
 
 // Run analysis on selected water body and update entire dashboard
-async function runAnalysis() {
-  const wb = document.getElementById('wb-select').value;
+async function runAnalysis(waterBodyOverride = null, targetLat = null, targetLng = null) {
+  const wb = waterBodyOverride || document.getElementById('wb-select').value;
   if (!wb) return;
+
+  const lat = targetLat !== null ? targetLat : (selectedLat !== null ? selectedLat : (parseFloat(sessionStorage.getItem('pin_lat')) || null));
+  const lng = targetLng !== null ? targetLng : (selectedLng !== null ? selectedLng : (parseFloat(sessionStorage.getItem('pin_lon')) || null));
+
+  const targetBadge = document.getElementById('active-target-badge');
+  if (targetBadge) targetBadge.textContent = wb;
 
   const btn = document.getElementById('analyze-btn');
   const status = document.getElementById('analyze-status');
   btn.disabled = true;
   btn.textContent = '⟳ Analyzing...';
-  status.textContent = `Sending ${wb} to pipeline...`;
+  status.textContent = `Analyzing ${wb} via Copernicus…`;
   status.style.color = 'var(--muted)';
 
   try {
     const today = new Date().toISOString().split('T')[0];
+    const payload = { water_body: wb, date: today };
+    if (lat !== null && lng !== null) {
+      payload.lat = lat;
+      payload.lon = lng;
+    }
+
     const res = await fetch(`${API}/api/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ water_body: wb, date: today })
+      body: JSON.stringify(payload)
     });
 
     if (!res.ok) throw new Error(`Server error: ${res.status}`);
     const data = await res.json();
 
-    updateDashboard(data);
+    updateDashboard(data, lat, lng);
     status.textContent = `✓ Analysis complete — ${data.analysis_id}`;
     status.style.color = 'var(--green)';
   } catch (err) {
@@ -987,7 +1100,7 @@ async function runAnalysis() {
 }
 
 // Update all KPI cards and map from an analysis response
-function updateDashboard(data) {
+function updateDashboard(data, userLat = null, userLng = null) {
   const statusColor = { 'HIGH': 'var(--red)', 'WARNING': 'var(--yellow)', 'NORMAL': 'var(--green)' };
   const col = statusColor[data.anomaly.status] || 'var(--text)';
 
@@ -1018,19 +1131,27 @@ function updateDashboard(data) {
   document.getElementById('kpi-ndci').textContent =
     `NDCI: ${data.indicators.ndci} · NDTI: ${data.indicators.ndti} · NDWI: ${data.indicators.ndwi}`;
 
-  // MAP — draw GeoJSON zone from backend response
+  // MAP — draw GeoJSON zone from backend response without moving camera away from clicked point
   if (zoneLayer) map.removeLayer(zoneLayer);
   if (data.geojson && data.geojson.features && data.geojson.features.length > 0) {
     zoneLayer = L.geoJSON(data.geojson, {
       style: { color: col, weight: 2, opacity: 0.9, fillOpacity: 0.2 }
     }).addTo(map);
     zoneLayer.bindTooltip(`${data.water_body} — ${data.anomaly.status}`);
-    map.fitBounds(zoneLayer.getBounds(), { padding: [40, 40], maxZoom: 15 });
+    // Only fitBounds if user did NOT select an explicit point
+    if (!userLat && selectedLat === null) {
+      try { map.fitBounds(zoneLayer.getBounds(), { padding: [40, 40], maxZoom: 15 }); } catch(_) {}
+    }
   }
 
-  // Save analysis ID for the assistant page
+  // Save analysis ID and coordinates for the assistant and satellite proof pages
   sessionStorage.setItem('analysis_id', data.analysis_id);
   sessionStorage.setItem('water_body', data.water_body);
+  const curLat = userLat || (selectedLat !== null ? selectedLat : (parseFloat(sessionStorage.getItem('pin_lat')) || 20.5937));
+  const curLng = userLng || (selectedLng !== null ? selectedLng : (parseFloat(sessionStorage.getItem('pin_lon')) || 78.9629));
+  sessionStorage.setItem('pin_lat', typeof curLat === 'number' ? curLat.toFixed(5) : curLat);
+  sessionStorage.setItem('pin_lon', typeof curLng === 'number' ? curLng.toFixed(5) : curLng);
+  updateSatProofBtn(data.water_body, curLat, curLng);
 }
 
 // Load water bodies on page ready

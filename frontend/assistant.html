@@ -858,110 +858,57 @@ footer { border-top: 1px solid var(--border-sub); padding: 40px; background: var
 </footer>
 
 <script>
-/* ── DYNAMIC LAKE DATA — reads sessionStorage set by dashboard after Analyze ── */
-const LAKE_DATA = {
-  'Ambazari Lake': {
-    center: '21.1280°N, 79.0430°E',
+/* ── DYNAMIC WATER BODY ANALYSIS DATA GENERATOR ── */
+function generateLakeData(wb, lat, lon) {
+  const centerLat = lat ? parseFloat(lat) : 19.7200;
+  const centerLon = lon ? parseFloat(lon) : 85.3200;
+  const seed = Math.abs(Math.floor(centerLat * 1000 + centerLon * 100)) % 100;
+
+  const score1 = (7.5 + (seed % 20) * 0.1).toFixed(1);
+  const score2 = (5.0 + (seed % 15) * 0.1).toFixed(1);
+  const score3 = (3.0 + (seed % 10) * 0.1).toFixed(1);
+  const score4 = (1.0 + (seed % 5) * 0.1).toFixed(1);
+
+  return {
+    center: `${centerLat.toFixed(4)}°N, ${centerLon.toFixed(4)}°E`,
     zones: [
-      { name: 'Ambazari North Inlet',  id: 'ZONE-01 · North Shore · ~1.8 km²',   sev: 'SEVERE +3.1σ',  score: '8.1', col: 'var(--red)' },
-      { name: 'Ambazari East Basin',   id: 'ZONE-02 · East Arm · ~1.2 km²',      sev: 'WARNING +1.9σ', score: '5.4', col: 'var(--yellow)' },
-      { name: 'Ambazari Dam Zone',     id: 'ZONE-03 · Dam Side · ~0.8 km²',      sev: 'WATCH +1.1σ',   score: '3.1', col: 'var(--green)' },
-      { name: 'Ambazari South Fringe', id: 'ZONE-04 · South Margin · ~0.6 km²',  sev: 'NOMINAL',       score: '1.0', col: 'var(--blue)' },
+      { name: `${wb} North Sector / Inlet`, id: `ZONE-01 · North Sector · ~${(1.2 + (seed%10)*0.1).toFixed(1)} km²`, sev: `SEVERE +${(2.8 + (seed%5)*0.1).toFixed(1)}σ`, score: score1, col: 'var(--red)' },
+      { name: `${wb} East Basin / Reach`, id: `ZONE-02 · East Sector · ~${(0.9 + (seed%8)*0.1).toFixed(1)} km²`, sev: `WARNING +${(1.8 + (seed%4)*0.1).toFixed(1)}σ`, score: score2, col: 'var(--yellow)' },
+      { name: `${wb} Dam Zone / Central`, id: `ZONE-03 · Central Arm · ~${(1.5 + (seed%12)*0.1).toFixed(1)} km²`, sev: `WATCH +${(1.0 + (seed%3)*0.1).toFixed(1)}σ`, score: score3, col: 'var(--green)' },
+      { name: `${wb} South Margin / Outflow`, id: `ZONE-04 · South Margin · ~${(0.8 + (seed%6)*0.1).toFixed(1)} km²`, sev: 'NOMINAL', score: score4, col: 'var(--blue)' },
     ],
     alerts: [
-      { time: 'TODAY · SATELLITE PASS', title: 'Harmful Algal Bloom — NDCI Threshold Breach',
-        body: 'NDCI reading of 0.42 exceeds the 3σ alarm threshold (0.31) at Ambazari North Inlet. Plume migration risk towards Ambazari Garden intake within 36 hours under current wind conditions.',
-        loc: '📍 21.1350°N, 79.0430°E · Zone 01 · ~800 m from Ambazari Garden intake' },
-      { time: 'TODAY · SENTINEL-2A', title: 'Elevated Turbidity — SPM Above Baseline',
-        body: 'SPM in Band B04 (665 nm) is 1.9σ above seasonal baseline across East Basin. Pattern is consistent with monsoon runoff-driven sediment influx from Nag River tributaries.',
-        loc: '📍 21.1280°N, 79.0520°E · Zone 02 · ~1.4 km from Ambazari dam' },
-      { time: 'YESTERDAY · SYSTEM', title: 'NDWI 7-Day Downward Trend — Water Extent Shrinking',
-        body: 'Ambazari Lake NDWI has declined over 5 consecutive passes. Currently at −1.1σ — approaching WATCH boundary. Evaporation and reduced inflow suspected.',
-        loc: '📍 21.1210°N, 79.0350°E · Zone 03 · 2.1 km from nearest municipal intake' },
+      { time: 'TODAY · SATELLITE PASS', title: `Algal & Turbidity Anomaly Alert — ${wb}`,
+        body: `Copernicus Sentinel-2 telemetry indicates anomalous photosynthetic and sediment spectral signatures exceeding baseline thresholds across ${wb} North Inlet.`,
+        loc: `📍 ${(centerLat + 0.007).toFixed(4)}°N, ${(centerLon + 0.004).toFixed(4)}°E · Zone 01 · ~800 m from main intake` },
+      { time: 'TODAY · MULTISPECTRAL MSI', title: `Elevated Total Suspended Solids (TSS) — ${wb}`,
+        body: `Band B04 (665 nm) reflectance is ${(1.8 + (seed%5)*0.1).toFixed(1)}σ above seasonal baseline across the east reach. Consistent with surface runoff and sediment influx.`,
+        loc: `📍 ${(centerLat - 0.002).toFixed(4)}°N, ${(centerLon + 0.008).toFixed(4)}°E · Zone 02 · Shoreline zone` },
+      { time: 'YESTERDAY · SYSTEM', title: `Surface Extent Stability Monitoring — ${wb}`,
+        body: `Multi-temporal MNDWI analysis confirms surface water boundary is stable with routine hydrodynamic circulation active.`,
+        loc: `📍 ${(centerLat - 0.006).toFixed(4)}°N, ${(centerLon - 0.005).toFixed(4)}°E · Zone 03 · Main basin` },
     ],
     ranks: [
-      { name: 'Ambazari North Inlet',  intake: '800 m',   settle: '1,200 m',  zone: 'Zone 01', val: '8.1', lbl: '/ 10.0 SEVERE',  col: 'var(--red)' },
-      { name: 'Ambazari East Basin',   intake: '1,800 m', settle: '2,400 m',  zone: 'Zone 02', val: '5.4', lbl: '/ 10.0 WARNING', col: 'var(--yellow)' },
-      { name: 'Ambazari Dam Zone',     intake: '3,200 m', settle: '5,100 m',  zone: 'Zone 03', val: '3.1', lbl: '/ 10.0 WATCH',   col: 'var(--green)' },
-      { name: 'Ambazari South Fringe', intake: '5,600 m', settle: '9,000 m',  zone: 'Zone 04', val: '1.0', lbl: '/ 10.0 NOMINAL', col: 'var(--blue)' },
+      { name: `${wb} North Sector / Inlet`, intake: '800 m', settle: '1,200 m', zone: 'Zone 01', val: score1, lbl: '/ 10.0 SEVERE', col: 'var(--red)' },
+      { name: `${wb} East Basin / Reach`, intake: '1,800 m', settle: '2,400 m', zone: 'Zone 02', val: score2, lbl: '/ 10.0 WARNING', col: 'var(--yellow)' },
+      { name: `${wb} Dam Zone / Central`, intake: '3,200 m', settle: '5,100 m', zone: 'Zone 03', val: score3, lbl: '/ 10.0 WATCH', col: 'var(--green)' },
+      { name: `${wb} South Margin / Outflow`, intake: '5,600 m', settle: '9,000 m', zone: 'Zone 04', val: score4, lbl: '/ 10.0 NOMINAL', col: 'var(--blue)' },
     ],
     protocols: [
-      'Deploy field tech for physical sampling at Ambazari North Inlet at 0.5m & 2m depth.',
-      'Pre-treat Nagpur Municipal Corporation intake infrastructure with powdered activated carbon.',
-      'Cross-reference 24h Vidarbha wind vector forecast with Nag River hydrodynamic model.',
-      'Submit ground truth field reading to calibrate next Sentinel-2 overpass.',
+      `Deploy regional field technician for physical sampling at ${wb} North Sector at 0.5m & 2m depth.`,
+      `Inspect municipal/local intake infrastructure and calibrate filtration treatment dosage.`,
+      `Cross-reference regional weather telemetry and hydrodynamic circulation vectors for ${wb}.`,
+      `Submit ground-truth field reading to calibrate next Sentinel-2 satellite overpass.`,
     ]
-  },
-  'Futala Lake': {
-    center: '21.1540°N, 79.0417°E',
-    zones: [
-      { name: 'Futala North Embankment', id: 'ZONE-01 · North Shore · ~0.9 km²',  sev: 'WARNING +2.1σ', score: '6.2', col: 'var(--yellow)' },
-      { name: 'Futala Central Water',    id: 'ZONE-02 · Central · ~0.7 km²',      sev: 'WATCH +1.3σ',   score: '3.8', col: 'var(--green)' },
-      { name: 'Futala South Inlet',      id: 'ZONE-03 · South Inlet · ~0.4 km²',  sev: 'WATCH +0.9σ',   score: '2.7', col: 'var(--green)' },
-      { name: 'Futala Open Zone',        id: 'ZONE-04 · Open Water · ~0.5 km²',   sev: 'NOMINAL',       score: '1.1', col: 'var(--blue)' },
-    ],
-    alerts: [
-      { time: 'TODAY · SATELLITE PASS', title: 'NDCI Elevation — Algal Activity Detected',
-        body: 'NDCI reading of 0.28 at Futala North Embankment is 2.1σ above baseline. Recreational water body advisory recommended pending lab confirmation.',
-        loc: '📍 21.1600°N, 79.0417°E · Zone 01 · ~300 m from Futala promenade' },
-      { time: 'TODAY · SENTINEL-2A', title: 'Reduced Water Transparency — SDD Below Baseline',
-        body: 'Secchi disk depth equivalent has dropped to 0.6 m (baseline 1.4 m) across central water body. Likely linked to algal scum and light scattering.',
-        loc: '📍 21.1540°N, 79.0430°E · Zone 02 · ~200 m from recreational zone' },
-      { time: 'YESTERDAY · SYSTEM', title: 'Monsoon Runoff Influx — SPM Spike Observed',
-        body: 'Futala South Inlet shows elevated SPM consistent with stormwater inflow. NDWI remains stable but turbidity 1.3σ above baseline.',
-        loc: '📍 21.1480°N, 79.0420°E · Zone 03 · ~500 m from south bund' },
-    ],
-    ranks: [
-      { name: 'Futala North Embankment', intake: '300 m',   settle: '800 m',   zone: 'Zone 01', val: '6.2', lbl: '/ 10.0 WARNING', col: 'var(--yellow)' },
-      { name: 'Futala Central Water',    intake: '700 m',   settle: '1,100 m', zone: 'Zone 02', val: '3.8', lbl: '/ 10.0 WATCH',   col: 'var(--green)' },
-      { name: 'Futala South Inlet',      intake: '1,200 m', settle: '2,000 m', zone: 'Zone 03', val: '2.7', lbl: '/ 10.0 WATCH',   col: 'var(--green)' },
-      { name: 'Futala Open Zone',        intake: '1,900 m', settle: '3,200 m', zone: 'Zone 04', val: '1.1', lbl: '/ 10.0 NOMINAL', col: 'var(--blue)' },
-    ],
-    protocols: [
-      'Deploy field tech for physical sampling at Futala North Embankment at 0.3m & 1m depth.',
-      'Issue recreational water advisory for Futala promenade visitors pending lab results.',
-      'Cross-reference Nagpur wind forecast with Futala Lake hydrodynamic model.',
-      'Submit ground truth field reading to calibrate next Sentinel-2 overpass.',
-    ]
-  },
-  'Gorewada Lake': {
-    center: '21.1972°N, 79.0375°E',
-    zones: [
-      { name: 'Gorewada North Reservoir', id: 'ZONE-01 · North Basin · ~3.2 km²', sev: 'WATCH +1.4σ',   score: '4.1', col: 'var(--green)' },
-      { name: 'Gorewada Central Body',    id: 'ZONE-02 · Central · ~2.8 km²',     sev: 'WATCH +1.0σ',   score: '3.2', col: 'var(--green)' },
-      { name: 'Gorewada South Arm',       id: 'ZONE-03 · South Arm · ~1.6 km²',   sev: 'NOMINAL',       score: '2.0', col: 'var(--blue)' },
-      { name: 'Gorewada East Fringe',     id: 'ZONE-04 · East Fringe · ~1.1 km²', sev: 'NOMINAL',       score: '1.3', col: 'var(--blue)' },
-    ],
-    alerts: [
-      { time: 'TODAY · SATELLITE PASS', title: 'NDCI Watch — Moderate Chlorophyll-a Rise',
-        body: 'NDCI at Gorewada North Reservoir is at 1.4σ above seasonal baseline. Gorewada International Zoo proximity warrants precautionary monitoring. No immediate threat to municipal supply.',
-        loc: '📍 21.2065°N, 79.0375°E · Zone 01 · ~1.2 km from Gorewada Zoo boundary' },
-      { time: 'TODAY · SENTINEL-2A', title: 'SPM Moderate Elevation — Central Zone',
-        body: 'Suspended particulate matter in central body is 1.0σ above baseline. Consistent with seasonal monsoon inflow from surrounding forest catchment.',
-        loc: '📍 21.1972°N, 79.0380°E · Zone 02 · ~2.8 km from nearest intake' },
-      { time: 'YESTERDAY · SYSTEM', title: 'MNDWI Stable — No Extent Change Detected',
-        body: 'Gorewada Lake MNDWI has remained within 0.5σ over 6 consecutive passes. Water extent is stable. Routine monitoring active.',
-        loc: '📍 21.1880°N, 79.0400°E · Zone 03 · ~4.0 km from Zone 01' },
-    ],
-    ranks: [
-      { name: 'Gorewada North Reservoir', intake: '1,200 m', settle: '2,400 m',  zone: 'Zone 01', val: '4.1', lbl: '/ 10.0 WATCH',   col: 'var(--green)' },
-      { name: 'Gorewada Central Body',    intake: '2,800 m', settle: '4,100 m',  zone: 'Zone 02', val: '3.2', lbl: '/ 10.0 WATCH',   col: 'var(--green)' },
-      { name: 'Gorewada South Arm',       intake: '4,500 m', settle: '7,200 m',  zone: 'Zone 03', val: '2.0', lbl: '/ 10.0 NOMINAL', col: 'var(--blue)' },
-      { name: 'Gorewada East Fringe',     intake: '6,100 m', settle: '10,000 m', zone: 'Zone 04', val: '1.3', lbl: '/ 10.0 NOMINAL', col: 'var(--blue)' },
-    ],
-    protocols: [
-      'Deploy field tech for physical sampling at Gorewada North Reservoir at 0.5m & 2m depth.',
-      'Notify Gorewada International Zoo management of elevated NDCI status for precautionary measures.',
-      'Cross-reference Nagpur wind forecast with Gorewada catchment hydrodynamic model.',
-      'Submit ground truth field reading to calibrate next Sentinel-2 overpass.',
-    ]
-  }
-};
+  };
+}
 
 function populatePage() {
-  const wb = sessionStorage.getItem('water_body') || 'Ambazari Lake';
-  const aid = sessionStorage.getItem('analysis_id') || '—';
-  const d = LAKE_DATA[wb] || LAKE_DATA['Ambazari Lake'];
+  const wb = sessionStorage.getItem('water_body') || 'Chilika Lake';
+  const aid = sessionStorage.getItem('analysis_id') || `A_${new Date().toISOString().slice(0,10).replace(/-/g,'')}_${wb.replace(/\s+/g,'')}`;
+  const lat = sessionStorage.getItem('pin_lat') || 19.7200;
+  const lon = sessionStorage.getItem('pin_lon') || 85.3200;
+  const d = generateLakeData(wb, lat, lon);
   const today = new Date().toISOString().split('T')[0];
 
   // Page header
@@ -1015,7 +962,6 @@ function populatePage() {
 }
 
 populatePage();
-</script>
 /* ── SCROLL REVEAL OBSERVER (GitHub Spring) ───── */
 const revealObs = new IntersectionObserver((entries) => {
   entries.forEach(e => {

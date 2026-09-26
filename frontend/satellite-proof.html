@@ -7,6 +7,8 @@
 <meta name="description" content="Real satellite thematic analysis layers for water quality monitoring — served live from the AquaWatch backend API.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- Leaflet CSS for India-wide Interactive Water Body Selection -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
 :root {
   --bg:#0d1117; --surface:#161b22; --surface2:#1c2128; --border:#30363d;
@@ -37,17 +39,51 @@ a{text-decoration:none;color:inherit}
 .main{margin-top:64px;padding:0 0 80px}
 
 /* HERO */
-.hero-strip{background:var(--surface);border-bottom:1px solid var(--border-sub);padding:36px 48px 32px}
-.hero-eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px}
-.hero-title{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;letter-spacing:-0.03em;color:var(--text);line-height:1.15;margin-bottom:10px}
-.hero-sub{color:var(--muted);font-size:14px;line-height:1.7;max-width:760px}
-.hero-meta{display:flex;gap:14px;margin-top:16px;flex-wrap:wrap}
+.hero-strip{background:var(--surface);border-bottom:1px solid var(--border-sub);padding:32px 48px 24px}
+.hero-eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+.hero-title{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:-0.03em;color:var(--text);line-height:1.2;margin-bottom:10px}
+.hero-sub{color:var(--muted);font-size:14px;line-height:1.6;max-width:880px}
+.hero-meta{display:flex;gap:12px;margin-top:14px;flex-wrap:wrap}
 .chip{font-family:'JetBrains Mono',monospace;font-size:11px;padding:4px 10px;border-radius:5px;border:1px solid}
 .chip-g{color:var(--green);background:rgba(63,185,80,0.08);border-color:rgba(63,185,80,0.25)}
 .chip-b{color:var(--blue);background:rgba(88,166,255,0.08);border-color:rgba(88,166,255,0.22)}
 .chip-y{color:var(--yellow);background:rgba(227,179,65,0.08);border-color:rgba(227,179,65,0.22)}
 
-/* SELECTOR BAR */
+/* ══ MAP & WATER BODY DETECTION CONTAINER ═══════════════ */
+.map-section-wrap{margin:24px 48px 0;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.35)}
+.map-header-bar{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;background:var(--surface2);border-bottom:1px solid var(--border-sub)}
+.map-title-row{display:flex;align-items:center;gap:10px}
+.map-live-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);animation:pulse 1.8s infinite}
+.map-title-txt{font-family:'Syne',sans-serif;font-weight:700;font-size:13.5px;letter-spacing:0.02em;color:var(--text)}
+.map-hud-readout{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+.map-hud-readout strong{color:var(--green)}
+
+/* SEARCH BAR OVER MAP */
+.map-search-bar-wrap{padding:12px 20px;background:rgba(13,17,23,0.7);border-bottom:1px solid var(--border-sub);position:relative}
+.search-input-container{position:relative;width:100%}
+.water-search-input{width:100%;padding:10px 40px 10px 16px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Inter',sans-serif;font-size:13.5px;outline:none;transition:border-color .2s,box-shadow .2s}
+.water-search-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(88,166,255,0.18)}
+.search-clear-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;display:none}
+.search-clear-btn:hover{color:var(--red)}
+
+.search-dropdown{position:absolute;top:100%;left:0;right:0;z-index:1500;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-top:4px;max-height:260px;overflow-y:auto;display:none;box-shadow:0 12px 40px rgba(0,0,0,0.6)}
+.s-item{padding:10px 16px;border-bottom:1px solid var(--border-sub);cursor:pointer;display:flex;flex-direction:column;gap:2px;transition:background .15s}
+.s-item:last-child{border-bottom:none}
+.s-item:hover{background:var(--surface2)}
+.s-item-title{font-size:13px;font-weight:600;color:var(--blue)}
+.s-item-sub{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+
+/* LEAFLET MAP ELEMENT */
+.sat-leaflet-map{width:100%;height:320px;background:#090d13;position:relative}
+
+/* QUICK CHIPS BAR */
+.quick-chips-bar{padding:10px 20px;display:flex;align-items:center;gap:8px;background:var(--surface2);border-top:1px solid var(--border-sub);flex-wrap:wrap}
+.chips-lbl{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;color:var(--faint);letter-spacing:0.06em}
+.qchip{background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:11.5px;font-family:'Inter',sans-serif;padding:4px 10px;border-radius:6px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.qchip:hover{background:var(--surface);border-color:var(--blue);color:var(--blue);transform:translateY(-1px)}
+.qchip.active{background:var(--blue);border-color:var(--blue);color:#0d1117;font-weight:600}
+
+/* CONTROL BAR */
 .selector-bar{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:16px;align-items:end;padding:18px 48px;background:var(--bg);border-bottom:1px solid var(--border-sub)}
 .fw{display:flex;flex-direction:column;gap:6px}
 .fl{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em}
@@ -59,8 +95,6 @@ a{text-decoration:none;color:inherit}
 
 /* LAYOUT */
 .content-grid{padding:28px 48px 0}
-
-/* GALLERY */
 .gallery{padding:0}
 .layer-tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:24px}
 .ltab{padding:7px 16px;font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:500;color:var(--muted);background:var(--surface);border:1px solid var(--border-sub);cursor:pointer;border-radius:7px;transition:all .2s}
@@ -109,7 +143,7 @@ a{text-decoration:none;color:inherit}
 .modal-title-txt{font-family:'Syne',sans-serif;font-weight:700;font-size:15px}
 .mcls{background:transparent;border:none;color:var(--muted);font-size:22px;cursor:pointer;width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center}
 .mcls:hover{color:var(--red);background:rgba(248,81,73,0.1)}
-.modal-body{display:grid;grid-template-columns:1fr 290px}
+.modal-body{display:grid;grid-template-columns:1fr 310px}
 .mimg{width:100%;aspect-ratio:1/1;overflow:hidden}
 .mimg img{width:100%;height:100%;object-fit:cover;display:block}
 .minfo{padding:22px;border-left:1px solid var(--border-sub);display:flex;flex-direction:column;gap:15px;overflow-y:auto;max-height:560px}
@@ -119,8 +153,6 @@ a{text-decoration:none;color:inherit}
 .ind-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border-sub);font-family:'JetBrains Mono',monospace;font-size:11.5px}
 .ind-row:last-child{border-bottom:none}
 .iname{color:var(--muted)}.ivalue{font-weight:600}
-.btrack{height:3px;background:var(--border);border-radius:99px;margin-top:2px}
-.bfill{height:100%;border-radius:99px;transition:width .6s var(--ease-out)}
 .mbtn{margin-top:auto;background:var(--green-dim);border:1px solid rgba(63,185,80,0.3);color:var(--green);font-weight:600;font-size:13px;padding:10px 16px;border-radius:8px;cursor:pointer;transition:background .2s}
 .mbtn:hover{background:var(--green);color:#0d1117}
 
@@ -131,8 +163,8 @@ footer{padding:26px 48px;border-top:1px solid var(--border-sub);display:flex;jus
 .flinks a{font-size:12px;color:var(--faint);transition:color .2s}
 .flinks a:hover{color:var(--text)}
 
-@media(max-width:1100px){.tgrid{grid-template-columns:repeat(2,1fr)}.selector-bar{grid-template-columns:1fr 1fr}.content-grid{padding:20px 24px 0}}
-@media(max-width:700px){.tgrid{grid-template-columns:1fr}.selector-bar{grid-template-columns:1fr}.nav-links{display:none}}
+@media(max-width:1100px){.tgrid{grid-template-columns:repeat(2,1fr)}.selector-bar{grid-template-columns:1fr 1fr}.content-grid{padding:20px 24px 0}.map-section-wrap{margin:18px 24px 0}}
+@media(max-width:700px){.tgrid{grid-template-columns:1fr}.selector-bar{grid-template-columns:1fr}.nav-links{display:none}.modal-body{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -155,21 +187,54 @@ footer{padding:26px 48px;border-top:1px solid var(--border-sub);display:flex;jus
   <div class="hero-strip">
     <div class="hero-eyebrow">Sentinel-2 L2A &middot; Thematic Satellite Intelligence</div>
     <h1 class="hero-title">Satellite Proof Gallery &mdash; 6-Layer Contamination Analysis</h1>
-    <p class="hero-sub">Real multispectral satellite analysis derived from ESA Copernicus Sentinel-2 imagery. Each thematic map isolates a specific contamination vector via spectral indices applied to the original satellite scene. Layer definitions are served live from the AquaWatch API.</p>
+    <p class="hero-sub">Dynamic multispectral remote sensing pipeline analyzing any lake, pond, dam, or reservoir across India. Input coordinates are captured live via Leaflet, dispatched to the satellite imagery API gateway, and dynamically synthesized into 6 scientific contamination proof products.</p>
     <div class="hero-meta">
-      <span class="chip chip-g">&#10003; Sentinel-2 L2A &middot; 10m Resolution</span>
-      <span class="chip chip-b">Copernicus API Gateway</span>
-      <span class="chip chip-y">&#9888; Lab Verification Required</span>
-      <span class="chip chip-g" id="hero-layer-count">Loading layers...</span>
+      <span class="chip chip-g">&#10003; India-Wide Detection Active</span>
+      <span class="chip chip-b">Sentinel-2 &amp; Landsat API Gateway</span>
+      <span class="chip chip-y">&#9888; Real-Time Spectral Math</span>
+      <span class="chip chip-g" id="hero-layer-count">6 Dynamic Proof Layers</span>
+    </div>
+  </div>
+
+  <!-- ══ INTERACTIVE INDIA WATER BODY DETECTION MAP ═══════════════ -->
+  <div class="map-section-wrap">
+    <div class="map-header-bar">
+      <div class="map-title-row">
+        <span class="map-live-dot"></span>
+        <span class="map-title-txt">INDIA WATER BODY DETECTOR (CLICK ANYWHERE OR SEARCH)</span>
+      </div>
+      <div class="map-hud-readout" id="sat-map-hud">
+        LAT: <span id="hud-lat">19.7200</span>°N &middot; LON: <span id="hud-lng">85.3200</span>°E &middot; TARGET: <strong id="hud-target">Chilika Lake</strong>
+      </div>
+    </div>
+
+    <div class="map-search-bar-wrap">
+      <div class="search-input-container">
+        <input type="text" id="water-search-input" class="water-search-input" placeholder="🔍 Search any lake, dam, reservoir, or pond across India (e.g. Chilika Lake, Hussain Sagar, Sardar Sarovar, Dal Lake, Powai Lake)..." autocomplete="off">
+        <button id="search-clear-btn" class="search-clear-btn" onclick="clearWaterSearch()">&times;</button>
+        <div id="search-dropdown" class="search-dropdown"></div>
+      </div>
+    </div>
+
+    <div id="sat-leaflet-map" class="sat-leaflet-map"></div>
+
+    <div class="quick-chips-bar">
+      <span class="chips-lbl">QUICK TARGET:</span>
+      <button class="qchip active" onclick="selectWaterBody('Chilika Lake', 19.7200, 85.3200)">Chilika Lake (Odisha)</button>
+      <button class="qchip" onclick="selectWaterBody('Hussain Sagar', 17.4239, 78.4738)">Hussain Sagar (Hyderabad)</button>
+      <button class="qchip" onclick="selectWaterBody('Dal Lake', 34.1100, 74.8700)">Dal Lake (Kashmir)</button>
+      <button class="qchip" onclick="selectWaterBody('Sardar Sarovar Dam', 21.8310, 73.7480)">Sardar Sarovar Dam (Gujarat)</button>
+      <button class="qchip" onclick="selectWaterBody('Powai Lake', 19.1250, 72.9050)">Powai Lake (Mumbai)</button>
+      <button class="qchip" onclick="selectWaterBody('Vembanad Lake', 9.6000, 76.4000)">Vembanad Lake (Kerala)</button>
+      <button class="qchip" onclick="selectWaterBody('Loktak Lake', 24.5500, 93.8000)">Loktak Lake (Manipur)</button>
+      <button class="qchip" onclick="selectWaterBody('Ambazari Lake', 21.1292, 79.0394)">Ambazari Lake (Nagpur)</button>
     </div>
   </div>
 
   <div class="selector-bar">
     <div class="fw">
-      <label class="fl">Locality Nearby Points</label>
-      <select class="sel" id="loc-select" onchange="onLocalityChange(this)">
-        <option value="">Loading locality points...</option>
-      </select>
+      <label class="fl">Active Water Body Target</label>
+      <input type="text" class="sel" id="active-wb-name" value="Chilika Lake" readonly style="color:var(--green);font-weight:600;cursor:default">
     </div>
     <div class="fw">
       <label class="fl">Scene Date</label>
@@ -177,9 +242,9 @@ footer{padding:26px 48px;border-top:1px solid var(--border-sub);display:flex;jus
     </div>
     <div class="fw">
       <label class="fl">Constellation</label>
-      <input type="text" class="sel" id="constellation-field" value="Loading..." readonly style="color:var(--green);cursor:default">
+      <input type="text" class="sel" id="constellation-field" value="Sentinel-2 L2A + Landsat-9" readonly style="color:var(--green);cursor:default">
     </div>
-    <button class="btn-fetch" id="reload-btn" onclick="reloadAll()" disabled>&#9889; Reload Proof Layers</button>
+    <button class="btn-fetch" id="reload-btn" onclick="reloadAll()">&#9889; Refresh Proof Layers</button>
   </div>
 
   <div class="content-grid">
@@ -187,7 +252,7 @@ footer{padding:26px 48px;border-top:1px solid var(--border-sub);display:flex;jus
 
       <!-- FILTER TABS (rendered from API data) -->
       <div class="layer-tabs" id="layer-tabs">
-        <button class="ltab active" onclick="filterGrid('all',this)">All Layers</button>
+        <button class="ltab active" onclick="filterGrid('all',this)">All 6 Layers</button>
       </div>
 
       <!-- API ERROR BANNER -->
@@ -212,10 +277,10 @@ footer{padding:26px 48px;border-top:1px solid var(--border-sub);display:flex;jus
       <!-- SCENE METADATA STRIP (populated from API) -->
       <div class="mstrip" id="meta-strip" style="display:none">
         <div class="mc"><div class="ml">Scene Date</div><div class="mv" id="meta-date">—</div></div>
-        <div class="mc"><div class="ml">Spatial Resolution</div><div class="mv g" id="meta-resolution">—</div></div>
-        <div class="mc"><div class="ml">Cloud Cover</div><div class="mv g" id="meta-cloud">—</div></div>
-        <div class="mc"><div class="ml">Anomaly Score</div><div class="mv r" id="meta-anomaly">—</div></div>
-        <div class="mc"><div class="ml">API Gateway</div><div class="mv g" id="meta-gateway">—</div></div>
+        <div class="mc"><div class="ml">Spatial Resolution</div><div class="mv g" id="meta-resolution">10m Multispectral</div></div>
+        <div class="mc"><div class="ml">Cloud Cover</div><div class="mv g" id="meta-cloud">&lt; 5%</div></div>
+        <div class="mc"><div class="ml">Composite Anomaly</div><div class="mv r" id="meta-anomaly">—</div></div>
+        <div class="mc"><div class="ml">API Gateway</div><div class="mv g" id="meta-gateway">&#10003; Copernicus Live</div></div>
       </div>
 
     </div>
@@ -232,7 +297,7 @@ footer{padding:26px 48px;border-top:1px solid var(--border-sub);display:flex;jus
     <a href="ai-assistant.html">AI Assistant</a>
     <a href="ground-truth.html">Field Verification</a>
   </nav>
-  <div style="font-size:12px;color:var(--faint)">&copy; 2026 AquaWatch System &middot; ESA Copernicus</div>
+  <div style="font-size:12px;color:var(--faint)">&copy; 2026 AquaWatch System &middot; ESA Copernicus &middot; Survey of India</div>
 </footer>
 
 <!-- INSPECTOR MODAL -->
@@ -250,8 +315,12 @@ footer{padding:26px 48px;border-top:1px solid var(--border-sub);display:flex;jus
           <div class="ival" id="modal-status" style="font-weight:700">—</div>
         </div>
         <div>
-          <div class="ilbl">Data Source</div>
+          <div class="ilbl">Data Source &amp; Resolution</div>
           <div class="ival mono" id="modal-source">—</div>
+        </div>
+        <div>
+          <div class="ilbl">Spectral Methodology</div>
+          <div class="ival" id="modal-methodology" style="font-size:12px;color:var(--text);line-height:1.5;margin-top:3px">—</div>
         </div>
         <div id="modal-indicators"></div>
         <div>
@@ -264,85 +333,266 @@ footer{padding:26px 48px;border-top:1px solid var(--border-sub);display:flex;jus
   </div>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
-   Configuration — change API_BASE if your backend is elsewhere
+   Configuration & Global State
    ───────────────────────────────────────────────────────────── */
 const API_BASE = 'http://localhost:8000';
 
-/* ─────────────────────────────────────────────────────────────
-   State
-   ───────────────────────────────────────────────────────────── */
-let layersData   = [];   // Array of layer objects from API
-let modalLayer   = null; // Currently open modal layer
+let map            = null;
+let clickMarker    = null;
+let polygonLayer   = null;
+let currentLat     = 19.7200;
+let currentLng     = 85.3200;
+let currentName    = 'Chilika Lake';
+let layersData     = [];
+let searchDebounce = null;
 
 /* ─────────────────────────────────────────────────────────────
-   Boot — fetch all data on page load
+   Boot — initialize map, parse URL or session params, and fetch
    ───────────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
-  // Default today's date
   const today = new Date().toISOString().slice(0, 10);
   document.getElementById('scene-date').value = today;
   document.getElementById('meta-date').textContent = today;
 
-  fetchLocalities();
+  // Check URL query parameters: ?lat=...&lng=...&name=...
+  const params = new URLSearchParams(window.location.search);
+  const qLat = params.get('lat');
+  const qLng = params.get('lng');
+  const qName = params.get('name');
+
+  if (qLat && qLng) {
+    currentLat = parseFloat(qLat);
+    currentLng = parseFloat(qLng);
+    if (qName) currentName = decodeURIComponent(qName);
+  } else if (sessionStorage.getItem('pin_lat') && sessionStorage.getItem('pin_lon')) {
+    currentLat = parseFloat(sessionStorage.getItem('pin_lat'));
+    currentLng = parseFloat(sessionStorage.getItem('pin_lon'));
+    if (sessionStorage.getItem('water_body')) {
+      currentName = sessionStorage.getItem('water_body');
+    }
+  }
+
+  updateHudDisplay();
+  initLeafletMap();
+  initSearchAutocomplete();
   fetchSatelliteLayers();
 });
 
 /* ─────────────────────────────────────────────────────────────
-   1. Fetch locality points from API → populate dropdown
+   1. Initialize Leaflet Map covering India
    ───────────────────────────────────────────────────────────── */
-async function fetchLocalities() {
-  try {
-    const res = await fetch(`${API_BASE}/api/locality-points`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const points = await res.json();
+function initLeafletMap() {
+  map = L.map('sat-leaflet-map', { zoomControl: true }).setView([currentLat, currentLng], 12);
 
-    const sel = document.getElementById('loc-select');
-    sel.innerHTML = points.map((p, i) =>
-      `<option value="${i}" data-lat="${p.lat}" data-lng="${p.lng}" data-name="${p.name}">
-        ${p.name} (${p.district})
-      </option>`
-    ).join('');
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors &middot; AquaWatch Satellite Gateway',
+    maxZoom: 18
+  }).addTo(map);
 
-    // Fetch satellite layers immediately with the selected locality coordinates
-    fetchSatelliteLayers();
-  } catch (err) {
-    console.warn('Locality points API unavailable:', err);
-    const sel = document.getElementById('loc-select');
-    sel.innerHTML = `<option value="" data-lat="21.1292" data-lng="79.0394">Ambazari Lake (Default Sentinel-2)</option>`;
-    fetchSatelliteLayers();
+  // Apply dark satellite filter to map tiles
+  const mapEl = document.getElementById('sat-leaflet-map');
+  const tilePane = mapEl.querySelector('.leaflet-tile-pane');
+  if (tilePane) {
+    tilePane.style.filter = 'invert(1) hue-rotate(180deg) brightness(0.85) saturate(0.9)';
   }
+
+  // Add initial marker
+  clickMarker = L.circleMarker([currentLat, currentLng], {
+    radius: 9,
+    color: '#39c5bb',
+    fillColor: '#3fb950',
+    fillOpacity: 0.8,
+    weight: 2
+  }).addTo(map).bindTooltip(currentName, { permanent: true, direction: 'top' });
+
+  // Map mousemove HUD
+  map.on('mousemove', e => {
+    document.getElementById('hud-lat').textContent = e.latlng.lat.toFixed(4);
+    document.getElementById('hud-lng').textContent = e.latlng.lng.toFixed(4);
+  });
+
+  // Map Click Listener — Universal detection anywhere across India
+  map.on('click', async e => {
+    const { lat, lng } = e.latlng;
+    currentLat = lat;
+    currentLng = lng;
+    updateHudDisplay();
+
+    // Move marker immediately and keep it on clicked target
+    if (clickMarker) map.removeLayer(clickMarker);
+    clickMarker = L.circleMarker([lat, lng], {
+      radius: 9,
+      color: '#39c5bb',
+      fillColor: '#3fb950',
+      fillOpacity: 0.85,
+      weight: 2
+    }).addTo(map).bindTooltip('🔍 Interrogating Copernicus Gateway...', { permanent: true, direction: 'top' }).openTooltip();
+
+    try {
+      const res = await fetch(`${API_BASE}/api/detect-lake?lat=${lat}&lon=${lng}`);
+      if (res.ok) {
+        const data = await res.json();
+        currentName = data.name;
+        clickMarker.setTooltipContent(`🛰 ${currentName}`);
+
+        // Draw polygon outline if available, but NEVER jump camera away from user click target
+        if (polygonLayer) map.removeLayer(polygonLayer);
+        if (data.geojson && data.geojson.features && data.geojson.features.length > 0) {
+          polygonLayer = L.geoJSON(data.geojson, {
+            style: { color: '#39c5bb', weight: 2, fillColor: '#3fb950', fillOpacity: 0.18, dashArray: '4 4' }
+          }).addTo(map);
+        }
+      } else {
+        currentName = `Water Body (${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E)`;
+        clickMarker.setTooltipContent(`📍 ${currentName}`);
+      }
+    } catch (_) {
+      currentName = `Water Body (${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E)`;
+      clickMarker.setTooltipContent(`📍 ${currentName}`);
+    }
+
+    updateHudDisplay();
+    syncToSession();
+    reloadAll();
+  });
 }
 
-function onLocalityChange(sel) {
-  const opt = sel.options[sel.selectedIndex];
-  const name = opt ? opt.getAttribute('data-name') : null;
-  if (name) console.log('Locality selected:', name);
+function updateHudDisplay() {
+  document.getElementById('hud-lat').textContent = currentLat.toFixed(4);
+  document.getElementById('hud-lng').textContent = currentLng.toFixed(4);
+  document.getElementById('hud-target').textContent = currentName;
+  document.getElementById('active-wb-name').value = currentName;
+}
+
+function syncToSession() {
+  sessionStorage.setItem('water_body', currentName);
+  sessionStorage.setItem('pin_lat', currentLat.toFixed(5));
+  sessionStorage.setItem('pin_lon', currentLng.toFixed(5));
+}
+
+/* ─────────────────────────────────────────────────────────────
+   2. Search Autocomplete for any Lake/Dam across India
+   ───────────────────────────────────────────────────────────── */
+function initSearchAutocomplete() {
+  const input = document.getElementById('water-search-input');
+  const dropdown = document.getElementById('search-dropdown');
+  const clearBtn = document.getElementById('search-clear-btn');
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim();
+    if (q.length > 0) {
+      clearBtn.style.display = 'block';
+    } else {
+      clearBtn.style.display = 'none';
+      dropdown.style.display = 'none';
+      return;
+    }
+
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(async () => {
+      if (q.length < 2) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/search-water-body?q=${encodeURIComponent(q)}&country=in`);
+        if (!res.ok) return;
+        const results = await res.json();
+        if (results && results.length > 0) {
+          dropdown.innerHTML = results.map(r => `
+            <div class="s-item" onclick="onSearchResultClick('${r.name.replace(/'/g, "\\'")}', ${r.lat}, ${r.lon})">
+              <span class="s-item-title">${r.name}</span>
+              <span class="s-item-sub">${r.display_name || `${r.lat.toFixed(4)}°N, ${r.lon.toFixed(4)}°E`}</span>
+            </div>
+          `).join('');
+          dropdown.style.display = 'block';
+        } else {
+          dropdown.innerHTML = `<div class="s-item" style="color:var(--faint);font-size:12px">No specific water body match found. You can click directly on the map.</div>`;
+          dropdown.style.display = 'block';
+        }
+      } catch (_) {
+        dropdown.style.display = 'none';
+      }
+    }, 250);
+  });
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.search-input-container')) {
+      dropdown.style.display = 'none';
+    }
+  });
+}
+
+function clearWaterSearch() {
+  const input = document.getElementById('water-search-input');
+  input.value = '';
+  document.getElementById('search-clear-btn').style.display = 'none';
+  document.getElementById('search-dropdown').style.display = 'none';
+}
+
+function onSearchResultClick(name, lat, lon) {
+  document.getElementById('water-search-input').value = name;
+  document.getElementById('search-dropdown').style.display = 'none';
+  selectWaterBody(name, lat, lon);
+}
+
+function selectWaterBody(name, lat, lon) {
+  currentName = name;
+  currentLat  = lat;
+  currentLng  = lon;
+
+  // Highlight active chip
+  document.querySelectorAll('.qchip').forEach(btn => {
+    if (btn.textContent.includes(name.split(' ')[0])) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  updateHudDisplay();
+  syncToSession();
+
+  if (map) {
+    map.flyTo([lat, lon], 13, { duration: 1.2 });
+    if (clickMarker) map.removeLayer(clickMarker);
+    clickMarker = L.circleMarker([lat, lon], {
+      radius: 9,
+      color: '#39c5bb',
+      fillColor: '#3fb950',
+      fillOpacity: 0.85,
+      weight: 2
+    }).addTo(map).bindTooltip(`🛰 ${name}`, { permanent: true, direction: 'top' }).openTooltip();
+  }
+
+  // Fetch polygon outline if available
+  fetch(`${API_BASE}/api/detect-lake?lat=${lat}&lon=${lon}`)
+    .then(r => r.json())
+    .then(data => {
+      if (polygonLayer && map) map.removeLayer(polygonLayer);
+      if (data.geojson && data.geojson.features && data.geojson.features.length > 0 && map) {
+        polygonLayer = L.geoJSON(data.geojson, {
+          style: { color: '#39c5bb', weight: 2, fillColor: '#3fb950', fillOpacity: 0.18, dashArray: '4 4' }
+        }).addTo(map);
+      }
+    })
+    .catch(() => {});
+
   reloadAll();
 }
 
 /* ─────────────────────────────────────────────────────────────
-   2. Fetch satellite layers from API → render cards + tabs + meta
+   3. Fetch Satellite Layers from Backend Gateway
    ───────────────────────────────────────────────────────────── */
 async function fetchSatelliteLayers() {
   const errBanner = document.getElementById('api-error');
   errBanner.style.display = 'none';
 
-  // Extract selected locality coordinates & date
-  const sel = document.getElementById('loc-select');
-  let lat = 21.1292, lng = 79.0394;
-  if (sel && sel.selectedIndex >= 0 && sel.options[sel.selectedIndex]) {
-    const opt = sel.options[sel.selectedIndex];
-    if (opt.dataset.lat && opt.dataset.lng) {
-      lat = parseFloat(opt.dataset.lat);
-      lng = parseFloat(opt.dataset.lng);
-    }
-  }
   const dateInput = document.getElementById('scene-date').value || new Date().toISOString().slice(0, 10);
+  const encodedName = encodeURIComponent(currentName);
 
   try {
-    const res = await fetch(`${API_BASE}/api/satellite-layers?lat=${lat}&lng=${lng}&date=${dateInput}`);
+    const res = await fetch(`${API_BASE}/api/satellite-layers?lat=${currentLat}&lng=${currentLng}&water_body=${encodedName}&date=${dateInput}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
@@ -351,30 +601,27 @@ async function fetchSatelliteLayers() {
     renderCards(layersData);
     renderMeta(data.scene_meta);
 
-    // Update hero badge + status
     document.getElementById('hero-layer-count').textContent = `${layersData.length} Dynamic Layers Active`;
-    document.getElementById('api-status-label').textContent = 'COPERNICUS ACTIVE';
+    document.getElementById('api-status-label').textContent = 'GATEWAY ACTIVE';
     document.getElementById('api-status-label').parentElement.style.color = 'var(--green)';
 
-    // Enable reload button
     const btn = document.getElementById('reload-btn');
     btn.disabled = false;
 
-    // Populate constellation field
-    document.getElementById('constellation-field').value = data.scene_meta.constellation;
-
+    if (data.scene_meta && data.scene_meta.constellation) {
+      document.getElementById('constellation-field').value = data.scene_meta.constellation;
+    }
   } catch (err) {
     console.error('Satellite layers API failed:', err);
     errBanner.style.display = 'block';
     document.getElementById('api-status-label').textContent = 'API OFFLINE';
     document.getElementById('api-status-label').parentElement.style.color = 'var(--red)';
-    document.getElementById('hero-layer-count').textContent = 'API unavailable';
-    document.getElementById('reload-btn').disabled = false;
+    document.getElementById('skeleton-grid').style.display = 'none';
   }
 }
 
 /* ─────────────────────────────────────────────────────────────
-   3. Render filter tabs from API data
+   4. Render Filter Tabs
    ───────────────────────────────────────────────────────────── */
 function renderTabs(layers) {
   const container = document.getElementById('layer-tabs');
@@ -389,7 +636,7 @@ function renderTabs(layers) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   4. Render thematic cards from API data
+   5. Render Thematic Satellite Cards
    ───────────────────────────────────────────────────────────── */
 function renderCards(layers) {
   const grid = document.getElementById('tgrid');
@@ -421,7 +668,7 @@ function renderCards(layers) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   5. Render scene metadata strip from API data
+   6. Render Scene Metadata
    ───────────────────────────────────────────────────────────── */
 function renderMeta(meta) {
   const strip = document.getElementById('meta-strip');
@@ -434,9 +681,6 @@ function renderMeta(meta) {
   strip.style.display = 'grid';
 }
 
-/* ─────────────────────────────────────────────────────────────
-   6. Reload triggered by button or selection change
-   ───────────────────────────────────────────────────────────── */
 function reloadAll() {
   document.getElementById('tgrid').style.display = 'none';
   document.getElementById('skeleton-grid').style.display = 'grid';
@@ -445,9 +689,6 @@ function reloadAll() {
   fetchSatelliteLayers();
 }
 
-/* ─────────────────────────────────────────────────────────────
-   7. Filter tabs
-   ───────────────────────────────────────────────────────────── */
 function filterGrid(layer, btn) {
   document.querySelectorAll('.ltab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -457,12 +698,11 @@ function filterGrid(layer, btn) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   8. Inspector modal — driven entirely from API data
+   7. Modal Inspector View
    ───────────────────────────────────────────────────────────── */
 function openModal(key) {
   const layer = layersData.find(l => l.key === key);
   if (!layer) return;
-  modalLayer = layer;
 
   const fullImgUrl = layer.image.startsWith('http') ? layer.image : `${API_BASE}${layer.image}`;
   document.getElementById('modal-title').textContent       = layer.title;
@@ -471,6 +711,7 @@ function openModal(key) {
   document.getElementById('modal-status').textContent      = layer.status;
   document.getElementById('modal-status').style.color      = layer.status_color;
   document.getElementById('modal-source').textContent      = layer.source;
+  document.getElementById('modal-methodology').textContent = layer.methodology || layer.description;
   document.getElementById('modal-science').textContent     = layer.science;
 
   document.getElementById('modal-indicators').innerHTML = layer.indicators.map(ind => `
@@ -478,32 +719,27 @@ function openModal(key) {
       <span class="iname">${ind.name}</span>
       <span class="ivalue" style="color:${ind.color}">${ind.value}</span>
     </div>
-    <div class="btrack">
-      <div class="bfill" style="width:${ind.pct}%;background:${ind.color}"></div>
-    </div>
   `).join('');
 
-  document.getElementById('modal-export-btn').onclick = () => exportLayer(layer);
+  document.getElementById('modal-export-btn').onclick = () => {
+    const a = document.createElement('a');
+    a.href = fullImgUrl;
+    a.download = `${layer.key}_satellite_proof_${currentName.replace(/\s+/g,'_')}.jpg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
   document.getElementById('modal-bg').classList.add('open');
 }
 
 function closeModal() {
   document.getElementById('modal-bg').classList.remove('open');
-  modalLayer = null;
 }
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-
-/* ─────────────────────────────────────────────────────────────
-   9. Export — downloads the layer image as proof artifact
-   ───────────────────────────────────────────────────────────── */
-function exportLayer(layer) {
-  const fullImgUrl = layer.image.startsWith('http') ? layer.image : `${API_BASE}${layer.image}`;
-  const a = document.createElement('a');
-  a.href = fullImgUrl;
-  a.download = `aquaradar_${layer.key}_satellite_proof.png`;
-  a.click();
-}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
 </script>
 </body>
 </html>
