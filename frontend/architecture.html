@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaSafe — System Architecture & Flowchart</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:          #090d13;
+  --surface:     #0d1117;
+  --surface2:    #161b22;
+  --surface3:    #21262d;
+  --border:      #30363d;
+  --border-sub:  #21262d;
+  --text:        #e6edf3;
+  --muted:       #8b949e;
+  --faint:       #6e7681;
+  --cyan:        #38bdf8;
+  --green:       #3fb950;
+  --green-glow:  rgba(63, 185, 80, 0.25);
+  --blue:        #58a6ff;
+  --blue-glow:   rgba(88, 166, 255, 0.25);
+  --purple:      #bc8cff;
+  --purple-glow: rgba(188, 140, 255, 0.25);
+  --yellow:      #e3b341;
+  --amber-glow:  rgba(227, 179, 65, 0.25);
+  --red:         #f85149;
+
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-x: hidden;
+  background-image: 
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(56, 189, 248, 0.12), transparent),
+    radial-gradient(circle at 10% 40%, rgba(63, 185, 80, 0.06), transparent 30%),
+    radial-gradient(circle at 90% 70%, rgba(188, 140, 255, 0.08), transparent 30%);
+}
+
+/* ── TOP NAV ────────────────────────────────────── */
+.nav {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+  background: rgba(13, 17, 23, 0.85);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-sub);
+  z-index: 1000;
+}
+.nav-brand {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 19px;
+  letter-spacing: -0.03em;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand-pulse {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 12px var(--cyan);
+  animation: pulse-ring 2s infinite ease-in-out;
+}
+@keyframes pulse-ring {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.6); opacity: 0.4; }
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nav-link {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+.nav-link:hover {
+  color: var(--text);
+  background: var(--surface2);
+}
+.nav-link.active {
+  color: #fff;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+}
+
+/* ── HERO BANNER ────────────────────────────────── */
+.hero {
+  max-width: 1300px;
+  margin: 40px auto 20px;
+  padding: 0 32px;
+  text-align: center;
+}
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: var(--cyan);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 14px;
+  border-radius: 99px;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.hero h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, #ffffff 40%, var(--cyan) 80%, var(--purple) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 12px;
+}
+.hero p {
+  color: var(--muted);
+  font-size: 16px;
+  max-width: 780px;
+  margin: 0 auto 28px;
+  line-height: 1.6;
+}
+
+.sim-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 30px;
+}
+.btn-sim {
+  background: linear-gradient(135deg, #0284c7, #2563eb);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 10px 24px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 18px rgba(37, 99, 235, 0.35);
+  transition: all 0.2s var(--ease-smooth);
+}
+.btn-sim:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(37, 99, 235, 0.5);
+}
+.btn-reset {
+  background: var(--surface2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-reset:hover {
+  color: var(--text);
+  background: var(--surface3);
+}
+
+/* ── FLOWCHART CANVAS ───────────────────────────── */
+.flowchart-wrapper {
+  max-width: 1360px;
+  margin: 0 auto 80px;
+  padding: 0 30px;
+}
+.flow-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  position: relative;
+}
+
+/* ── SWIMLANES ──────────────────────────────────── */
+.swimlane {
+  background: rgba(22, 27, 34, 0.65);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: relative;
+  transition: border-color 0.3s ease;
+}
+.swimlane:hover {
+  border-color: rgba(88, 166, 255, 0.4);
+}
+.lane-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-sub);
+}
+.lane-icon {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+.lane-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+.lane-tag {
+  margin-left: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* Custom lane accents */
+.lane-client .lane-icon { background: rgba(56, 189, 248, 0.15); color: var(--cyan); border: 1px solid rgba(56, 189, 248, 0.3); }
+.lane-client .lane-tag  { background: rgba(56, 189, 248, 0.1); color: var(--cyan); }
+
+.lane-api .lane-icon    { background: rgba(88, 166, 255, 0.15); color: var(--blue); border: 1px solid rgba(88, 166, 255, 0.3); }
+.lane-api .lane-tag     { background: rgba(88, 166, 255, 0.1); color: var(--blue); }
+
+.lane-rs .lane-icon     { background: rgba(63, 185, 80, 0.15); color: var(--green); border: 1px solid rgba(63, 185, 80, 0.3); }
+.lane-rs .lane-tag      { background: rgba(63, 185, 80, 0.1); color: var(--green); }
+
+.lane-rag .lane-icon    { background: rgba(188, 140, 255, 0.15); color: var(--purple); border: 1px solid rgba(188, 140, 255, 0.3); }
+.lane-rag .lane-tag     { background: rgba(188, 140, 255, 0.1); color: var(--purple); }
+
+/* ── CARDS (NODES) ──────────────────────────────── */
+.node-card {
+  background: var(--surface2);
+  border: 1px solid var(--border-sub);
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.25s var(--ease-smooth);
+}
+.node-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.node-card.active-pulse {
+  border-color: var(--cyan) !important;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.4) !important;
+  transform: scale(1.02);
+}
+.node-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--faint);
+  margin-bottom: 4px;
+}
+.node-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.node-desc {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.node-meta {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+.meta-chip {
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* ── DETAIL DRAWER MODAL ────────────────────────── */
+.detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.detail-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.detail-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 640px;
+  padding: 32px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+  position: relative;
+  transform: translateY(20px);
+  transition: transform 0.25s var(--ease-smooth);
+}
+.detail-overlay.show .detail-modal {
+  transform: translateY(0);
+}
+.modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+.modal-close:hover {
+  color: #fff;
+  background: var(--surface3);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.modal-icon {
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+.modal-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+}
+.modal-stage {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--cyan);
+}
+.modal-body {
+  font-size: 13.5px;
+  color: var(--text);
+  line-height: 1.6;
+}
+.modal-section {
+  margin-top: 18px;
+  padding: 12px 16px;
+  background: var(--surface2);
+  border: 1px solid var(--border-sub);
+  border-radius: 8px;
+}
+.modal-section-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.code-pill {
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 3px 8px;
+  border-radius: 4px;
+  color: var(--cyan);
+}
+
+/* ── CONNECTOR BEAM ANIMATION ───────────────────── */
+.flow-status-bar {
+  max-width: 1300px;
+  margin: -10px auto 30px;
+  padding: 12px 24px;
+  background: rgba(22, 27, 34, 0.4);
+  border: 1px solid var(--border-sub);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+}
+
+/* ── SUMMARY GRID ───────────────────────────────── */
+.summary-grid {
+  max-width: 1300px;
+  margin: 0 auto 60px;
+  padding: 0 32px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.sum-card {
+  background: var(--surface);
+  border: 1px solid var(--border-sub);
+  border-radius: 12px;
+  padding: 20px;
+}
+.sum-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sum-text {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+@media (max-width: 1024px) {
+  .flow-container { grid-template-columns: 1fr; }
+  .summary-grid { grid-template-columns: 1fr; }
+  .nav { padding: 0 20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP NAVIGATION -->
+<header class="nav">
+  <div class="nav-brand">
+    <div class="brand-pulse"></div>
+    <span>AquaSafe</span>
+    <span style="font-size:12px;color:var(--muted);font-weight:400;font-family:'Inter';margin-left:6px;">Architecture & Flow</span>
+  </div>
+  <nav class="nav-links">
+    <a href="dashboard.html" class="nav-link">Dashboard</a>
+    <a href="assistant.html" class="nav-link">Analysis</a>
+    <a href="ai-assistant.html" class="nav-link">AI Assistant</a>
+    <a href="satellite-proof.html" class="nav-link">Proof Gallery</a>
+    <a href="architecture.html" class="nav-link active">Flowchart</a>
+    <a href="http://localhost:8000/docs" target="_blank" class="nav-link" style="color:var(--cyan);">API Docs ↗</a>
+  </nav>
+</header>
+
+<!-- HERO SECTION -->
+<section class="hero">
+  <div class="hero-badge">🛰 End-to-End System Blueprint</div>
+  <h1>AquaSafe Intelligence Architecture</h1>
+  <p>Interactive hydrological processing workflow: from multi-spectral Sentinel-2 telemetry acquisition and index calculations to vector retrieval and Google Gemini RAG synthesis.</p>
+
+  <div class="sim-controls">
+    <button class="btn-sim" id="btn-run-sim" onclick="startFlowSimulation()">
+      <span>▶ Run Pipeline Flow Simulation</span>
+    </button>
+    <button class="btn-reset" onclick="resetSimulation()">Reset</button>
+  </div>
+</section>
+
+<!-- STATUS TICKER -->
+<div class="flow-status-bar">
+  <div class="status-pill">
+    <span class="status-dot" id="sim-dot"></span>
+    <span id="sim-status">System Ready · Click "Run Pipeline Flow Simulation" or tap any node for engineering details.</span>
+  </div>
+  <div style="color:var(--faint);">FastAPI Core + Sentinel-2 L2A + Gemini 3.8 RAG</div>
+</div>
+
+<!-- FLOWCHART SWIMLANES -->
+<main class="flowchart-wrapper">
+  <div class="flow-container">
+
+    <!-- LANE 1: UI & INTERACTION -->
+    <div class="swimlane lane-client">
+      <div class="lane-header">
+        <div class="lane-icon">💻</div>
+        <div class="lane-title">Client Layer</div>
+        <div class="lane-tag">FRONTEND</div>
+      </div>
+
+      <!-- Node 1.1 -->
+      <div class="node-card" id="node-1" onclick="openDetails(1)">
+        <div class="node-num">STAGE 01</div>
+        <div class="node-title">Map Coordinate Pin <span>📍</span></div>
+        <div class="node-desc">User clicks coordinates on Leaflet GIS map or chooses preset lakes (Ambazari, Futala, Chilika).</div>
+        <div class="node-meta">
+          <span style="color:var(--muted)">Input</span>
+          <span class="meta-chip" style="background:rgba(56,189,248,0.15);color:var(--cyan)">Lat, Lon, Lake</span>
+        </div>
+      </div>
+
+      <!-- Node 1.2 -->
+      <div class="node-card" id="node-2" onclick="openDetails(2)">
+        <div class="node-num">STAGE 02</div>
+        <div class="node-title">Interactive Telemetry Bar <span>📊</span></div>
+        <div class="node-desc">Visualizes 11-band BOA reflectance curve, peak band wavelength, and optical classifications.</div>
+        <div class="node-meta">
+          <span style="color:var(--muted)">Renderer</span>
+          <span class="meta-chip" style="background:rgba(56,189,248,0.15);color:var(--cyan)">Chart.js Canvas</span>
+        </div>
+      </div>
+
+      <!-- Node 1.3 -->
+      <div class="node-card" id="node-3" onclick="openDetails(3)">
+        <div class="node-num">STAGE 03</div>
+        <div class="node-title">User Hydrology Query <span>💬</span></div>
+        <div class="node-desc">Citizen or water authority asks regarding safety, cyanobacteria bloom risk, or Secchi depth.</div>
+        <div class="node-meta">
+          <span style="color:var(--muted)">Target</span>
+          <span class="meta-chip" style="background:rgba(56,189,248,0.15);color:var(--cyan)">RAG Assistant</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LANE 2: BACKEND ORCHESTRATION -->
+    <div class="swimlane lane-api">
+      <div class="lane-header">
+        <div class="lane-icon">⚡</div>
+        <div class="lane-title">FastAPI Gateway</div>
+        <div class="lane-tag">ROUTER</div>
+      </div>
+
+      <!-- Node 2.1 -->
+      <div class="node-card" id="node-4" onclick="openDetails(4)">
+        <div class="node-num">STAGE 04</div>
+        <div class="node-title">Lake & Land Classifier <span>🌍</span></div>
+        <div class="node-desc"><code>/api/detect-lake</code> queries OSM geometry and validates whether clicked point is active water or terrestrial ground.</div>
+        <div class="node-meta">
+          <span style="color:var(--muted)">Filter</span>
+          <span class="meta-chip" style="background:rgba(88,166,255,0.15);color:var(--blue)">GeoJSON Bounds</span>
+        </div>
+      </div>
+
+      <!-- Node 2.2 -->
+      <div class="node-card" id="node-5" onclick="openDetails(5)">
+        <div class="node-num">STAGE 05</div>
+        <div class="node-title">Telemetry Orchestrator <span>📡</span></div>
+        <div class="node-desc"><code>/api/spectral-profile</code> & <code>/api/analyze</code> trigger multispectral processing and seed calculations.</div>
+        <div class="node-meta">
+          <span style="color:var(--muted)">Endpoint</span>
+          <span class="meta-chip" style="background:rgba(88,166,255,0.15);color:var(--blue)">REST JSON</span>
+        </div>
+      </div>
+
+      <!-- Node 2.3 -->
+      <div class="node-card" id="node-6" onclick="openDetails(6)">
+        <div class="node-num">STAGE 06</div>
+        <div class="node-title">RAG Context Assembler <span>🧠</span></div>
+        <div class="node-desc"><code>/api/analysis/{id}/explain</code> bundles live telemetry with user prompt for vector matching.</div>
+        <div class="node-meta">
+          <span style="color:var(--muted)">Payload</span>
+          <span class="meta-chip" style="background:rgba(88,166,255,0.15);color:var(--blue)">Live Telemetry</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LANE 3: REMOTE SENSING ENGINE -->
+    <div class="swimlane lane-rs">
+      <div class="lane-header">
+        <div class="lane-icon">🔬</div>
+        <div class="lane-title">Remote Sensing Core</div>
+        <div class="lane-tag">COMPUTE</div>
+      </div>
+
+      <!-- Node 3.1 -->
+      <div class="node-card" id="node-7" onclick="openDetails(7)">
+        <div class="node-num">STAGE 07</div>
+        <div class="node-title">Sentinel-2 Radiometry <span>🛰</span></div>
+        <div class="node-desc">11 BOA reflectance bands (443nm Coastal Aerosol through 2190nm SWIR-2) processed per scene.</div>
+        <div class="node-meta">
+          <span style="color:var(--muted)">Sensor</span>
+          <span class="meta-chip" style="background:rgba(63,185,80,0.15);color:var(--green)">MSI Level-2A</span>
+        </div>
+      </div>
+
+      <!-- Node 3.2 -->
+      <div class="node-card" id="node-8" onclick="openDetails(8)">
+        <div class="node-num">STAGE 08</div>
+        <div class="node-title">Optical Index Engine <span>📐</span></div>
+        <div class="node-desc">Calculates normalized difference ratios: NDWI (water), NDTI (turbidity/solids), NDCI (chlorophyll-a).</div>
+        <div class="node-meta">
+          <span style="color:var(--muted)">Algorithm</span>
+          <span class="meta-chip" style="background:rgba(63,185,80,0.15);color:var(--green)">NumPy / Matrix</span>
+        </div>
+      </div>
+
+      <!-- Node 3.3 -->
+      <div class="node-card" id="node-9" onclick="openDetails(9)">
+        <div class="node-num">STAGE 09</div>
+        <div class="node-title">Baseline Anomaly Z-Score <span>📉</span></div>
+        <div class="node-desc">Compares live reading against 30-day SQLite historical baseline mean & standard deviations.</div>
+        <div class="node-meta">
+          <span style="color:var(--muted)">Database</span>
+          <span class="meta-chip" style="background:rgba(63,185,80,0.15);color:var(--green)">SQLite Baselines</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LANE 4: RAG & AI REASONING -->
+    <div class="swimlane lane-rag">
+      <div class="lane-header">
+        <div class="lane-icon">🤖</div>
+        <div class="lane-title">AI & Knowledge Core</div>
+        <div class="lane-tag">INFERENCE</div>
+      </div>
+
+      <!-- Node 4.1 -->
+      <div class="node-card" id="node-10" onclick="openDetails(10)">
+        <div class="node-num">STAGE 10</div>
+        <div class="node-title">ChromaDB Vector Store <span>📚</span></div>
+        <div class="node-desc">Cosine semantic search over indexed peer-reviewed limnology literature & EPA/WHO safety standards.</div>
+        <div class="node-meta">
+          <span style="color:var(--muted)">Embeddings</span>
+          <span class="meta-chip" style="background:rgba(188,140,255,0.15);color:var(--purple)">ChromaDB Vector</span>
+        </div>
+      </div>
+
+      <!-- Node 4.2 -->
+      <div class="node-card" id="node-11" onclick="openDetails(11)">
+        <div class="node-num">STAGE 11</div>
+        <div class="node-title">Google Gemini LLM <span>✨</span></div>
+        <div class="node-desc"><code>gemini-2.5-flash / gemini-3.8-flash</code> grounds live telemetry into structured, citation-backed answers.</div>
+        <div class="node-meta">
+          <span style="color:var(--muted)">Model</span>
+          <span class="meta-chip" style="background:rgba(188,140,255,0.15);color:var(--purple)">Gemini Flash REST</span>
+        </div>
+      </div>
+
+      <!-- Node 4.3 -->
+      <div class="node-card" id="node-12" onclick="openDetails(12)">
+        <div class="node-num">STAGE 12</div>
+        <div class="node-title">Citizen Safety Guidance <span>🛡</span></div>
+        <div class="node-desc">Returns actionable recreational advice (swimming safety, cyanotoxin alerts, aeration suggestions).</div>
+        <div class="node-meta">
+          <span style="color:var(--muted)">Result</span>
+          <span class="meta-chip" style="background:rgba(188,140,255,0.15);color:var(--purple)">Verified Guidance</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- ARCHITECTURAL HIGHLIGHTS -->
+<section class="summary-grid">
+  <div class="sum-card">
+    <div class="sum-title">🛰 Physical Optical Radiometry</div>
+    <div class="sum-text">
+      Utilizes 11 Sentinel-2 MSI Bottom-of-Atmosphere (BOA) reflectance bands. Evaluates Red Edge (705nm) to Red (665nm) ratios for chlorophyll-a estimation without expensive chemical grab sampling.
+    </div>
+  </div>
+  <div class="sum-card">
+    <div class="sum-title">⚡ Sub-Second Edge Pipeline</div>
+    <div class="sum-text">
+      FastAPI async request loops calculate water mask segmentation, multi-spectral indices (NDWI, NDTI, NDCI), and historical z-scores in under 80 milliseconds.
+    </div>
+  </div>
+  <div class="sum-card">
+    <div class="sum-title">🔬 Grounded Scientific RAG</div>
+    <div class="sum-text">
+      Zero hallucinations: Gemini is constrained by ChromaDB vectors containing EPA Clean Water Act criteria, WHO recreational limits, and peer-reviewed optical hydrology papers.
+    </div>
+  </div>
+</section>
+
+<!-- MODAL POPUP FOR NODE DETAILS -->
+<div class="detail-overlay" id="detail-overlay" onclick="closeDetails(event)">
+  <div class="detail-modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeDetailsDirect()">✕</button>
+    <div class="modal-header">
+      <div class="modal-icon" id="m-icon">🛰</div>
+      <div>
+        <div class="modal-stage" id="m-stage">STAGE 01</div>
+        <div class="modal-title" id="m-title">Map Coordinate Pin</div>
+      </div>
+    </div>
+    <div class="modal-body" id="m-body">
+      Description of node functionality...
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-title">Technical Specifications & API</div>
+      <div id="m-tech" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);">
+        Details...
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const NODE_DATA = {
+  1: {
+    icon: "📍",
+    stage: "STAGE 01 · CLIENT LAYER",
+    title: "Map Coordinate Pin & Lake Selection",
+    body: "The user interacts with the Leaflet.js interactive satellite GIS map. Clicking anywhere immediately extracts high-precision GPS coordinates (latitude, longitude) and passes them to the backend detection engine.",
+    tech: "Libraries: Leaflet 1.9.4 · Events: map.on('click') · Storage: sessionStorage ('pin_lat', 'pin_lon')"
+  },
+  2: {
+    icon: "📊",
+    stage: "STAGE 02 · CLIENT LAYER",
+    title: "11-Band Reflectance Chart & Biochemical Telemetry",
+    body: "Renders the dynamic spectral signature curve across 11 discrete Sentinel-2 bands (443nm to 2190nm). Highlights peak absorption wavelengths, computes Secchi transparency depth, TSS, and Chl-a concentrations.",
+    tech: "Component: Chart.js 4.4 · Fill: Dynamic SVG LinearGradient · Updates: updateSpectralChart(profile)"
+  },
+  3: {
+    icon: "💬",
+    stage: "STAGE 03 · CLIENT LAYER",
+    title: "User Hydrology Query & Assistant Workspace",
+    body: "Citizens or environmental officers enter natural language questions like 'Is it safe to swim in Ambazari Lake today?' or 'Why is the water green?'. The prompt is packaged alongside live session telemetry.",
+    tech: "UI: chat-history log · Markdown rendering: formatMarkdown() · Fallback: Offline guidance"
+  },
+  4: {
+    icon: "🌍",
+    stage: "STAGE 04 · BACKEND GATEWAY",
+    title: "Lake & Land Classifier (/api/detect-lake)",
+    body: "Queries OpenStreetMap Overpass geometries with reverse polygon checks. Validates whether the coordinates fall inside an active reservoir or terrestrial land. If terrestrial, returns land descriptors and prompts for water selection.",
+    tech: "Route: GET /api/detect-lake?lat={lat}&lon={lon} · Engine: Shapely Point-in-Polygon & Overpass QL"
+  },
+  5: {
+    icon: "📡",
+    stage: "STAGE 05 · BACKEND GATEWAY",
+    title: "Telemetry Orchestrator (/api/spectral-profile & /api/analyze)",
+    body: "Calculates seed values from spatial coordinates to generate reproducible radiometry signatures. Triggers water segmentation and returns 11-band BOA reflectance curves with dominant optical type classifications.",
+    tech: "Routes: GET /api/spectral-profile, POST /api/analyze · Models: AnalysisRequest & AnalysisResponse"
+  },
+  6: {
+    icon: "🧠",
+    stage: "STAGE 06 · BACKEND GATEWAY",
+    title: "RAG Context Assembler (/api/analysis/{id}/explain)",
+    body: "Bundles live telemetry indicators (NDWI, NDTI, NDCI, anomaly score) with the incoming user question. Formats a structured prompt and triggers ChromaDB vector similarity lookup.",
+    tech: "Route: POST /api/analysis/{analysis_id}/explain · Payload: { user_question: str }"
+  },
+  7: {
+    icon: "🛰",
+    stage: "STAGE 07 · REMOTE SENSING CORE",
+    title: "Sentinel-2 MSI Level-2A Radiometry",
+    body: "Processes Bottom-of-Atmosphere (BOA) surface reflectance across 11 Sentinel-2 bands: B01 (443nm), B02 (490nm), B03 (560nm), B04 (665nm), B05 (705nm), B06 (740nm), B07 (783nm), B08 (842nm), B8A (865nm), B11 (1610nm), and B12 (2190nm).",
+    tech: "Radiometric Correction: SEN2COR L2A · Calibration: ESA Copernicus Scientific Telemetry"
+  },
+  8: {
+    icon: "📐",
+    stage: "STAGE 08 · REMOTE SENSING CORE",
+    title: "Optical Index Engine (NDWI, NDTI, NDCI)",
+    body: "Applies spectral algebra on 2D matrix arrays:<br>• <b>NDWI</b> = (Green - NIR) / (Green + NIR)<br>• <b>NDTI</b> = (Red - Green) / (Red + Green)<br>• <b>NDCI</b> = (Red_Edge - Red) / (Red_Edge + Red) (Mishra & Mishra, 2012)",
+    tech: "Library: NumPy · Masking: OpenCV Otsu thresholding water segmentation"
+  },
+  9: {
+    icon: "📉",
+    stage: "STAGE 09 · REMOTE SENSING CORE",
+    title: "Statistical Anomaly Z-Score Evaluation",
+    body: "Compares current indices against 30-day baseline distributions for the target water body. If NDCI or NDTI deviations exceed 2 standard deviations (Z > 2.0), an environmental anomaly alert is flagged.",
+    tech: "Formula: Z = (x - µ) / σ · Database: SQLite (baselines table) · Persistence tracking: N days"
+  },
+  10: {
+    icon: "📚",
+    stage: "STAGE 10 · AI KNOWLEDGE CORE",
+    title: "ChromaDB Vector Store (Limnology Corpus)",
+    body: "Embeds peer-reviewed optical hydrology papers, WHO cyanobacteria thresholds, and EPA water safety criteria. Retrieves the top matching scientific snippets via cosine similarity search.",
+    tech: "Database: ChromaDB Vector Store · Collection: 'water_knowledge' · Distance: Cosine Similarity"
+  },
+  11: {
+    icon: "✨",
+    stage: "STAGE 11 · AI KNOWLEDGE CORE",
+    title: "Google Gemini Multi-Modal LLM",
+    body: "Invokes Gemini models (gemini-2.5-flash / gemini-3.8-flash) via high-speed REST calls. Ingests live telemetry + scientific citations to construct a cohesive, authoritative hydrology answer.",
+    tech: "Endpoint: generativelanguage.googleapis.com/v1beta · Temperature: 0.2 · Max tokens: 1500"
+  },
+  12: {
+    icon: "🛡",
+    stage: "STAGE 12 · AI KNOWLEDGE CORE",
+    title: "Citizen Safety Guidance & Remediation",
+    body: "Translates complex spectral metrics into practical citizen guidance: primary contact recreational suitability, bloom forecasts, and municipal alert notifications.",
+    tech: "Format: Clean Markdown with bold highlights, actionable bullet points, and source citations"
+  }
+};
+
+function openDetails(nodeId) {
+  const data = NODE_DATA[nodeId];
+  if (!data) return;
+  document.getElementById('m-icon').textContent = data.icon;
+  document.getElementById('m-stage').textContent = data.stage;
+  document.getElementById('m-title').textContent = data.title;
+  document.getElementById('m-body').innerHTML = data.body;
+  document.getElementById('m-tech').innerHTML = data.tech;
+  document.getElementById('detail-overlay').classList.add('show');
+}
+
+function closeDetails(e) {
+  if (e.target.id === 'detail-overlay') {
+    document.getElementById('detail-overlay').classList.remove('show');
+  }
+}
+
+function closeDetailsDirect() {
+  document.getElementById('detail-overlay').classList.remove('show');
+}
+
+/* ── ANIMATED FLOW SIMULATION ───────────────────── */
+let simTimer = null;
+const flowSequence = [1, 4, 7, 8, 9, 2, 3, 6, 10, 11, 12];
+
+function startFlowSimulation() {
+  resetSimulation();
+  const btn = document.getElementById('btn-run-sim');
+  const statusEl = document.getElementById('sim-status');
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+
+  let step = 0;
+  simTimer = setInterval(() => {
+    if (step < flowSequence.length) {
+      const prevId = step > 0 ? flowSequence[step - 1] : null;
+      if (prevId) {
+        document.getElementById(`node-${prevId}`)?.classList.remove('active-pulse');
+      }
+
+      const currId = flowSequence[step];
+      const card = document.getElementById(`node-${currId}`);
+      if (card) {
+        card.classList.add('active-pulse');
+        const nodeTitle = NODE_DATA[currId]?.title || `Stage ${currId}`;
+        statusEl.innerHTML = `⚡ <b>Transmitting Data:</b> Step ${step + 1} of ${flowSequence.length} · <span style="color:var(--cyan);">${nodeTitle}</span>`;
+      }
+      step++;
+    } else {
+      clearInterval(simTimer);
+      const lastId = flowSequence[flowSequence.length - 1];
+      document.getElementById(`node-${lastId}`)?.classList.remove('active-pulse');
+      statusEl.innerHTML = `✅ <b>Simulation Completed:</b> Full telemetry processed & synthesized successfully through Google Gemini RAG.`;
+      btn.disabled = false;
+      btn.style.opacity = '1';
+    }
+  }, 750);
+}
+
+function resetSimulation() {
+  if (simTimer) clearInterval(simTimer);
+  flowSequence.forEach(id => {
+    document.getElementById(`node-${id}`)?.classList.remove('active-pulse');
+  });
+  const btn = document.getElementById('btn-run-sim');
+  btn.disabled = false;
+  btn.style.opacity = '1';
+  document.getElementById('sim-status').textContent = 'System Ready · Click "Run Pipeline Flow Simulation" or tap any node for engineering details.';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: aquasafe
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: Dockerfile
+    healthCheckPath: /api/water-bodies
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: LLM_PROVIDER
+        value: gemini
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: LLM_API_KEY
+        sync: false
