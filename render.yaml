@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: aquasafe
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: Dockerfile
+    healthCheckPath: /api/health/db
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: aquasafe-db
+          property: connectionString
+      - key: LLM_PROVIDER
+        value: gemini
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: LLM_API_KEY
+        sync: false
+
+databases:
+  - name: aquasafe-db
+    plan: free
+    databaseName: aquasafe
+    user: aquasafe
