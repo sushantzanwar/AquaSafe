@@ -499,7 +499,13 @@ async def analyze_scene(request: AnalysisRequest):
     Uses synthetic data to test the end-to-end intelligence pipeline.
     """
     # 1. Ingestion (Mock)
-    scene = generate_mock_sentinel_scene((256, 256))
+    # Generate a dynamic seed based on location so different lakes get different readings
+    if request.lat is not None and request.lon is not None:
+        seed = int(abs(request.lat * 10000 + request.lon * 1000)) % 1000000
+    else:
+        seed = sum(ord(c) for c in request.water_body) * 42
+    
+    scene = generate_mock_sentinel_scene((256, 256), seed=seed)
     
     # 2. Spectral Analysis (Calculates NDWI, NDTI, NDCI)
     indices = process_scene_indices(scene)
