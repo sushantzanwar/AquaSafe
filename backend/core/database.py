@@ -3,7 +3,8 @@ import json
 import os
 from typing import List, Dict, Any
 
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "historical_data.db")
+# AQUASAFE_LEGACY_DB lets a container keep this file on a mounted volume.
+DB_PATH = os.environ.get("AQUASAFE_LEGACY_DB") or os.path.join(os.path.dirname(os.path.dirname(__file__)), "historical_data.db")
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
