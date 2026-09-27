@@ -31,26 +31,24 @@ a { text-decoration: none; color: inherit; }
 h1 { font-size: 36px; margin-bottom: 32px; color: var(--permafrost); }
 h2 { font-size: 24px; margin-bottom: 24px; color: var(--permafrost); }
 
-/* Form */
-.form-group { margin-bottom: 24px; }
-.form-group label { display: block; font-family: 'JetBrains Mono'; font-size: 12px; color: rgba(232,244,241,0.7); margin-bottom: 8px; }
-.form-group input { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--border); color: var(--permafrost); padding: 16px; font-family: 'Inter'; font-size: 16px; outline: none; transition: 0.3s; }
-.form-group input:focus { border-color: var(--bioluminite); }
-
-.drop-zone { border: 2px dashed var(--border); padding: 48px 24px; text-align: center; background: rgba(0,255,178,0.02); cursor: pointer; transition: 0.3s; margin-bottom: 24px; }
+.drop-zone { border: 2px dashed var(--border); padding: 40px 24px; text-align: center; background: rgba(0,255,178,0.02); cursor: pointer; transition: 0.3s; margin-bottom: 24px; }
 .drop-zone:hover { border-color: var(--bioluminite); background: rgba(0,255,178,0.05); }
 .drop-icon { font-size: 32px; margin-bottom: 16px; }
-.drop-text { font-family: 'Syne'; font-size: 18px; color: var(--bioluminite); margin-bottom: 8px; }
+.drop-text { font-family: 'Syne'; font-size: 18px; color: var(--bioluminite); margin-bottom: 8px; word-break: break-all; }
 .drop-sub { font-size: 13px; color: rgba(232,244,241,0.5); }
 
 .btn-submit { background: var(--bioluminite); color: var(--abyss); padding: 16px; font-family: 'Syne'; font-weight: 700; font-size: 16px; border: none; cursor: pointer; width: 100%; transition: 0.3s; clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%); }
 .btn-submit:hover { filter: brightness(1.1); }
+.btn-submit:disabled { opacity: 0.35; cursor: not-allowed; filter: none; }
 
 /* Verdict Box */
-.verdict-box { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--abyss); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; opacity: 0; pointer-events: none; transition: opacity 0.5s; text-align: center; }
+.verdict-box { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--abyss); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; opacity: 0; pointer-events: none; transition: opacity 0.5s; text-align: center; padding: 24px; }
 .verdict-box.show { opacity: 1; pointer-events: all; }
-.v-text { font-family: 'Syne'; font-weight: 800; font-size: 48px; color: var(--bioluminite); margin-bottom: 16px; }
-.v-sub { font-size: 18px; color: var(--permafrost); }
+.v-text { font-family: 'Syne'; font-weight: 800; font-size: 44px; color: var(--bioluminite); margin-bottom: 16px; }
+.v-text.bad { color: var(--iron-coral); font-size: 36px; }
+.v-text.wait { color: var(--radium); font-size: 36px; }
+.v-credit { font-family: 'Syne'; font-weight: 800; font-size: 32px; color: var(--radium); margin-bottom: 12px; }
+.v-sub { font-size: 18px; color: var(--permafrost); max-width: 460px; line-height: 1.5; }
 #confetti { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
 
 /* Leaderboard */
@@ -61,14 +59,53 @@ h2 { font-size: 24px; margin-bottom: 24px; color: var(--permafrost); }
 .lb-row:hover { background: rgba(0,255,178,0.05); }
 .lb-row.highlight { background: rgba(0,255,178,0.05); border-left: 4px solid var(--bioluminite); }
 .rank { font-family: 'Syne'; font-weight: 700; font-size: 16px; }
-.user { font-family: 'JetBrains Mono'; font-size: 13px; }
+.user { font-family: 'JetBrains Mono'; font-size: 13px; word-break: break-word; }
 .credits { font-weight: bold; color: var(--bioluminite); }
 .bar-wrap { width: 100px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin-top: 4px; }
 .bar-fill { height: 100%; background: var(--bioluminite); }
 
+/* Verified contribution */
+.lead { font-size: 15px; color: rgba(232,244,241,0.8); margin: -16px 0 20px; line-height: 1.5; }
+.principle { border-left: 3px solid var(--radium); background: rgba(198,255,71,0.05); padding: 12px 16px; margin-bottom: 24px; font-size: 13px; color: rgba(232,244,241,0.85); }
+.req-title { font-family: 'JetBrains Mono'; font-size: 12px; color: rgba(232,244,241,0.7); margin-bottom: 10px; }
+.checks { list-style: none; margin-bottom: 24px; }
+.checks li { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; }
+.checks .ic { width: 20px; flex-shrink: 0; font-family: 'JetBrains Mono'; text-align: center; color: rgba(232,244,241,0.4); }
+.checks .why { display: block; font-size: 12px; color: rgba(232,244,241,0.55); margin-top: 2px; }
+.checks li.pass .ic { color: var(--bioluminite); }
+.checks li.fail .ic, .checks li.fail .lbl { color: var(--iron-coral); }
+.banner { padding: 12px 16px; margin-bottom: 20px; font-size: 14px; border: 1px solid var(--border); line-height: 1.4; }
+.banner.ok { border-color: var(--bioluminite); color: var(--bioluminite); }
+.banner.bad { border-color: var(--iron-coral); color: var(--iron-coral); }
+.banner.wait { border-color: var(--radium); color: var(--radium); }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 32px; }
+.stat { background: rgba(0,0,0,0.3); border: 1px solid var(--border); padding: 12px; }
+.stat .n { font-family: 'Syne'; font-weight: 700; font-size: 22px; color: var(--bioluminite); }
+.stat .k { font-family: 'JetBrains Mono'; font-size: 10px; color: rgba(232,244,241,0.5); margin-top: 4px; }
+h3.sec { font-size: 16px; margin: 32px 0 12px; }
+.namebox { display: flex; gap: 8px; margin-bottom: 24px; }
+.namebox input { flex: 1; background: rgba(0,0,0,0.5); border: 1px solid var(--border); color: var(--permafrost); padding: 10px; font-size: 14px; outline: none; }
+.namebox input:focus { border-color: var(--bioluminite); }
+.namebox button { background: none; border: 1px solid var(--border); color: var(--bioluminite); padding: 8px 14px; font-family: 'JetBrains Mono'; font-size: 11px; cursor: pointer; }
+.reward { border: 1px solid var(--border); padding: 12px 14px; margin-bottom: 10px; background: rgba(0,0,0,0.2); }
+.reward .top { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.reward .cost { font-family: 'JetBrains Mono'; color: var(--bioluminite); white-space: nowrap; }
+.reward .desc { font-size: 12px; color: rgba(232,244,241,0.55); margin: 4px 0 8px; }
+.tag { display: inline-block; margin-top: 8px; font-family: 'JetBrains Mono'; font-size: 10px; padding: 2px 6px; border: 1px solid rgba(232,244,241,0.3); color: rgba(232,244,241,0.6); }
+.fine { font-size: 12px; color: rgba(232,244,241,0.5); margin-top: 8px; line-height: 1.5; }
+.sub-row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
+.chip { font-family: 'JetBrains Mono'; font-size: 10px; padding: 2px 8px; border: 1px solid; white-space: nowrap; height: fit-content; }
+.chip.VERIFIED { color: var(--bioluminite); }
+.chip.REJECTED { color: var(--iron-coral); }
+.chip.PENDING, .chip.VALIDATING { color: var(--radium); }
+.empty { font-size: 13px; color: rgba(232,244,241,0.5); padding: 12px 0; }
+#file-input { display: none; }
+
 @media (max-width: 768px) {
+  body { height: auto; overflow: auto; }
   .main-wrapper { flex-direction: column; overflow-y: auto; }
   .form-panel, .board-panel { width: 100%; padding: 24px; border: none; height: auto; }
+  .verdict-box { min-height: 420px; }
 }
 </style>
 </head>
@@ -86,143 +123,265 @@ h2 { font-size: 24px; margin-bottom: 24px; color: var(--permafrost); }
 
 <div class="main-wrapper">
   <div class="form-panel">
-    <h1 class="syne">Submit Field Verification</h1>
-    
+    <h1 class="syne">Field Verification</h1>
+    <p class="lead">Earn credits by discovering <strong>NEW</strong> water bodies that need verification.</p>
+    <div class="principle">Credits reward verified new observations &mdash; not simply photo uploads.</div>
+
+    <div class="req-title">TO EARN CREDITS:</div>
+    <ul class="checks" id="checks"></ul>
+
+    <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp,image/tiff">
     <div class="drop-zone" id="drop-zone">
       <div class="drop-icon">📸</div>
-      <div class="drop-text">Upload Sample Photo</div>
-      <div class="drop-sub">Drag & drop or click to browse (JPG, PNG)</div>
+      <div class="drop-text">Upload an original, geotagged photo</div>
+      <div class="drop-sub">Drag &amp; drop or click to browse (JPG straight from your camera, with location on)</div>
     </div>
-    
-    <div class="form-group">
-      <label>Turbidity Reading (NTU) - Optional</label>
-      <input type="text" placeholder="e.g. 14.5">
-    </div>
-    
-    <div class="form-group">
-      <label>Water Body ID</label>
-      <input type="text" placeholder="e.g. LE-042">
-    </div>
-    
-    <div style="display:flex; gap:16px;" class="form-group">
-      <div style="flex:1;"><label>Latitude</label><input type="text" placeholder="Auto-detected"></div>
-      <div style="flex:1;"><label>Longitude</label><input type="text" placeholder="Auto-detected"></div>
-    </div>
-    
-    <button class="btn-submit" onclick="submitForm()">Submit & Earn Credits</button>
+
+    <div id="precheck-banner" class="banner" hidden></div>
+    <div id="detected" class="fine" hidden></div>
+
+    <button class="btn-submit" id="submit-btn" disabled>Submit for verification</button>
+    <p class="fine">The server reads the location and capture time from the photo itself and decides the credit amount. Typed coordinates, dates and water-body names are not used.</p>
 
     <div class="verdict-box" id="verdict">
       <canvas id="confetti"></canvas>
-      <div class="v-text">+250 AquaWatch Credits</div>
-      <div class="v-sub">Verification submitted successfully.<br>Model calibrated.</div>
-      <button class="btn-submit" style="width: auto; margin-top: 32px; padding: 12px 32px;" onclick="document.getElementById('verdict').classList.remove('show')">Done</button>
+      <div id="v-title" class="v-text"></div>
+      <div id="v-credit" class="v-credit"></div>
+      <div id="v-sub" class="v-sub"></div>
+      <button class="btn-submit" style="width: auto; margin-top: 32px; padding: 12px 32px;" id="v-done">Done</button>
     </div>
   </div>
 
   <div class="board-panel">
-    <h2 class="syne">Field Verification Leaderboard</h2>
+    <div class="namebox">
+      <input id="name-input" maxlength="40" placeholder="Contributor name (shown on the leaderboard)">
+      <button id="name-btn">JOIN</button>
+    </div>
+    <div class="stats" id="stats"></div>
+
+    <h2 class="syne">Verified Contribution Leaderboard</h2>
     <table class="lb-table">
       <thead>
-        <tr>
-          <th>RANK</th>
-          <th>USER ID</th>
-          <th>CREDITS</th>
-          <th>SUBMISSIONS</th>
-        </tr>
+        <tr><th>RANK</th><th>USER</th><th>VERIFIED</th><th>CREDITS</th><th>QUALITY</th></tr>
       </thead>
-      <tbody>
-        <tr class="lb-row highlight">
-          <td class="rank">#1</td>
-          <td class="user">AW-TECH-84</td>
-          <td><div class="credits">14,250</div><div class="bar-wrap"><div class="bar-fill" style="width: 100%"></div></div></td>
-          <td class="mono">57</td>
-        </tr>
-        <tr class="lb-row">
-          <td class="rank">#2</td>
-          <td class="user">OH_DNR_02</td>
-          <td><div class="credits">11,800</div><div class="bar-wrap"><div class="bar-fill" style="width: 82%"></div></div></td>
-          <td class="mono">42</td>
-        </tr>
-        <tr class="lb-row">
-          <td class="rank">#3</td>
-          <td class="user">CITIZEN_SCI_9</td>
-          <td><div class="credits">8,400</div><div class="bar-wrap"><div class="bar-fill" style="width: 60%"></div></div></td>
-          <td class="mono">28</td>
-        </tr>
-        <tr class="lb-row">
-          <td class="rank">#4</td>
-          <td class="user">AW-TECH-22</td>
-          <td><div class="credits">7,100</div><div class="bar-wrap"><div class="bar-fill" style="width: 50%"></div></div></td>
-          <td class="mono">21</td>
-        </tr>
-        <tr class="lb-row">
-          <td class="rank">#5</td>
-          <td class="user">WATER_MGMT_C</td>
-          <td><div class="credits">4,500</div><div class="bar-wrap"><div class="bar-fill" style="width: 32%"></div></div></td>
-          <td class="mono">15</td>
-        </tr>
-      </tbody>
+      <tbody id="lb-body"></tbody>
     </table>
+    <p class="fine">Ranked by credits actually awarded. Pending and rejected submissions do not count. Quality = verified &divide; decided submissions.</p>
+
+    <h3 class="sec syne">My submissions</h3>
+    <div id="my-subs"></div>
+
+    <h3 class="sec syne">Rewards</h3>
+    <div id="rewards"></div>
+    <p class="fine" id="reward-note"></p>
   </div>
 </div>
 
 <script>
-// Transitions
+const API = 'http://localhost:8000';
+const TOKEN_KEY = 'aquasafe_contributor_token';
+const ICON = { pass: '✓', fail: '✕', review: '?', skip: '·' };
+const DEFAULT_CHECKS = [
+  ['gps', 'Photo contains GPS location'],
+  ['captured', 'Photo was taken within the last 7 days'],
+  ['location', 'Location matches a recognized water body'],
+  ['new_water_body', 'Water body is not already analyzed'],
+  ['image', 'Photo clearly shows the water body'],
+  ['duplicate', 'Photo is original and non-duplicate'],
+];
+let file = null, precheckOk = false, busy = false, myCredits = 0;
+
+const $ = id => document.getElementById(id);
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function getToken() { try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; } }
+function setToken(t) { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch (e) {} }
+async function api(path, opts = {}) {
+  const headers = Object.assign({}, opts.headers || {});
+  const t = getToken(); if (t) headers['X-AquaSafe-Token'] = t;
+  const res = await fetch(API + path, Object.assign({}, opts, { headers }));
+  let data = null; try { data = await res.json(); } catch (e) {}
+  if (!res.ok) { const err = new Error((data && data.detail) || ('HTTP ' + res.status)); err.status = res.status; throw err; }
+  return data;
+}
+async function ensureUser(name) {
+  if (getToken() && !name) return;
+  const r = await api('/api/users/anonymous', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ display_name: name || null }) });
+  setToken(r.token);
+}
+
+// ---- checklist ----------------------------------------------------------------------------------
+function renderChecks(checks) {
+  const ul = $('checks'); ul.replaceChildren();
+  const rows = checks && checks.length ? checks : DEFAULT_CHECKS.map(([id, label]) => ({ id, label, status: 'skip', message: '' }));
+  rows.forEach(c => {
+    const li = el('li', c.status);
+    li.appendChild(el('span', 'ic', ICON[c.status] || '·'));
+    const box = el('span');
+    box.appendChild(el('span', 'lbl', c.label));
+    if (c.message && c.status !== 'pass') box.appendChild(el('span', 'why', c.message));
+    li.appendChild(box); ul.appendChild(li);
+  });
+}
+function banner(kind, text) { const b = $('precheck-banner'); b.hidden = !text; b.className = 'banner ' + kind; b.textContent = text || ''; }
+
+// ---- upload + precheck --------------------------------------------------------------------------
+const drop = $('drop-zone');
+drop.addEventListener('click', () => $('file-input').click());
+drop.addEventListener('dragover', e => e.preventDefault());
+drop.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files[0]) choose(e.dataTransfer.files[0]); });
+$('file-input').addEventListener('change', e => { if (e.target.files[0]) choose(e.target.files[0]); });
+
+function dropState(icon, name, sub) { drop.replaceChildren(el('div', 'drop-icon', icon), el('div', 'drop-text', name), el('div', 'drop-sub', sub)); }
+
+async function choose(f) {
+  file = f; precheckOk = false; $('submit-btn').disabled = true; $('detected').hidden = true;
+  dropState('⏳', f.name, 'Checking the photo…');
+  drop.style.borderColor = 'var(--bioluminite)';
+  renderChecks(null); banner('', '');
+  try {
+    const fd = new FormData(); fd.append('file', f);
+    const r = await api('/api/field/precheck', { method: 'POST', body: fd });
+    renderChecks(r.checks);
+    dropState(r.decision === 'REJECTED' ? '⚠️' : '✅', f.name, 'Click to choose a different photo');
+    if (r.water_body) { $('detected').hidden = false; $('detected').textContent = 'Detected water body: ' + r.water_body; }
+    if (r.decision === 'REJECTED') banner('bad', 'Not eligible for credits — ' + r.message);
+    else { banner('ok', 'All automatic checks passed. Submit to have the platform verify and credit it.'); precheckOk = true; }
+    $('submit-btn').disabled = !precheckOk;
+  } catch (e) {
+    dropState('⚠️', f.name, 'Click to choose a different photo');
+    banner('bad', e.status === 503 ? 'Credits are unavailable: the database is not configured on the server.' : 'Could not check the photo: ' + e.message);
+  }
+}
+
+// ---- submit -------------------------------------------------------------------------------------
+$('submit-btn').addEventListener('click', async () => {
+  if (busy || !file || !precheckOk) return;
+  busy = true; $('submit-btn').disabled = true; $('submit-btn').textContent = 'Verifying…';
+  try {
+    await ensureUser();
+    const fd = new FormData(); fd.append('file', file);
+    const r = await api('/api/field/submissions', { method: 'POST', body: fd });
+    showVerdict(r); if (r.checks && r.checks.length) renderChecks(r.checks);
+    refreshSide();
+  } catch (e) {
+    banner('bad', 'Submission failed: ' + e.message);
+  } finally {
+    busy = false; $('submit-btn').textContent = 'Submit for verification';
+    file = null; precheckOk = false; $('submit-btn').disabled = true;
+  }
+});
+
+function showVerdict(r) {
+  const t = $('v-title'), c = $('v-credit'), s = $('v-sub');
+  c.textContent = ''; s.replaceChildren();
+  if (r.status === 'VERIFIED') {
+    t.className = 'v-text'; t.textContent = 'Verified contribution';
+    c.textContent = '+' + r.credits_awarded + ' credits';
+    s.textContent = r.water_body ? 'New observation recorded for ' + r.water_body + '.' : 'New observation recorded.';
+  } else if (r.status === 'REJECTED') {
+    t.className = 'v-text bad'; t.textContent = 'Not eligible for credits';
+    s.textContent = 'Reason: ' + r.message;
+  } else {
+    t.className = 'v-text wait'; t.textContent = 'Submission received';
+    s.append('Verification in progress.', document.createElement('br'), 'Credits will be awarded after verification.');
+  }
+  $('verdict').classList.add('show');
+  if (r.status === 'VERIFIED') fireConfetti();
+}
+$('v-done').addEventListener('click', () => $('verdict').classList.remove('show'));
+
+// ---- side panel ---------------------------------------------------------------------------------
+async function refreshSide() {
+  if (getToken()) {
+    try {
+      const me = await api('/api/credits/me'); myCredits = me.credits; renderStats(me);
+      if (me.display_name) $('name-input').placeholder = 'You are ' + me.display_name;
+      renderSubs(await api('/api/field/submissions'));
+    } catch (e) { if (e.status === 401) { setToken(null); myCredits = 0; renderStats(null); } }
+  } else {
+    myCredits = 0; renderStats(null);
+    $('my-subs').replaceChildren(el('div', 'empty', 'Submit a photo to start earning verified credits.'));
+  }
+  loadLeaderboard(); loadRewards();
+}
+function renderStats(me) {
+  const box = $('stats'); box.replaceChildren();
+  [['CREDITS', me ? me.credits : 0], ['VERIFIED', me ? me.verified_contributions : 0], ['PENDING', me ? me.pending : 0], ['REJECTED', me ? me.rejected : 0]].forEach(([k, n]) => {
+    const d = el('div', 'stat'); d.appendChild(el('div', 'n', String(n))); d.appendChild(el('div', 'k', k)); box.appendChild(d);
+  });
+}
+function renderSubs(list) {
+  const box = $('my-subs'); box.replaceChildren();
+  if (!list.length) { box.appendChild(el('div', 'empty', 'No submissions yet.')); return; }
+  list.slice(0, 8).forEach(s => {
+    const row = el('div', 'sub-row');
+    const left = el('div'); left.appendChild(el('div', '', s.water_body || 'Unidentified location'));
+    left.appendChild(el('div', 'fine', s.status === 'REJECTED' ? s.message : (s.status === 'VERIFIED' ? '+' + s.credits_awarded + ' credits' : 'Awaiting verification')));
+    row.appendChild(left); row.appendChild(el('span', 'chip ' + s.status, s.status.replace('_', ' '))); box.appendChild(row);
+  });
+}
+function lbMessage(text) { const body = $('lb-body'); body.replaceChildren(); const tr = el('tr'); const td = el('td', 'empty', text); td.colSpan = 5; tr.appendChild(td); body.appendChild(tr); }
+async function loadLeaderboard() {
+  try {
+    const rows = await api('/api/credits/leaderboard');
+    if (!rows.length) return lbMessage('No verified contributions yet. Be the first.');
+    const body = $('lb-body'); body.replaceChildren();
+    const max = Math.max(...rows.map(r => r.credits)) || 1;
+    rows.forEach((r, i) => {
+      const tr = el('tr', 'lb-row' + (i === 0 ? ' highlight' : ''));
+      tr.appendChild(el('td', 'rank', '#' + r.rank));
+      tr.appendChild(el('td', 'user', r.user));
+      tr.appendChild(el('td', 'mono', String(r.verified_contributions)));
+      const c = el('td'); c.appendChild(el('div', 'credits', r.credits.toLocaleString()));
+      const bw = el('div', 'bar-wrap'), bf = el('div', 'bar-fill'); bf.style.width = Math.round(100 * r.credits / max) + '%'; bw.appendChild(bf); c.appendChild(bw); tr.appendChild(c);
+      tr.appendChild(el('td', 'mono', r.verification_rate == null ? '—' : Math.round(r.verification_rate * 100) + '%'));
+      body.appendChild(tr);
+    });
+  } catch (e) { lbMessage(e.status === 503 ? 'Credits are unavailable (database not configured).' : 'Leaderboard unavailable.'); }
+}
+async function loadRewards() {
+  const box = $('rewards'); box.replaceChildren();
+  try {
+    const r = await api('/api/credits/rewards');
+    r.rewards.forEach(x => {
+      const d = el('div', 'reward'), top = el('div', 'top');
+      top.appendChild(el('span', '', x.title)); top.appendChild(el('span', 'cost', x.cost.toLocaleString() + ' credits')); d.appendChild(top);
+      d.appendChild(el('div', 'desc', x.description));
+      const bw = el('div', 'bar-wrap'), bf = el('div', 'bar-fill'); bf.style.width = Math.min(100, Math.round(100 * myCredits / x.cost)) + '%'; bw.appendChild(bf); d.appendChild(bw);
+      d.appendChild(el('span', 'tag', x.available ? 'AVAILABLE' : 'COMING SOON')); box.appendChild(d);
+    });
+    $('reward-note').textContent = r.disclaimer;
+  } catch (e) { box.appendChild(el('div', 'empty', 'Rewards unavailable.')); }
+}
+$('name-btn').addEventListener('click', async () => {
+  const n = $('name-input').value.trim(); if (!n) return;
+  try { setToken(null); await ensureUser(n); $('name-input').value = ''; refreshSide(); } catch (e) { banner('bad', e.message); }
+});
+
+// Page transitions
 document.querySelectorAll('a').forEach(a => {
   a.addEventListener('click', e => {
-    if(a.getAttribute('href') && !a.getAttribute('href').startsWith('#')) {
-      e.preventDefault();
-      document.body.classList.add('page-exit');
+    if (a.getAttribute('href') && !a.getAttribute('href').startsWith('#')) {
+      e.preventDefault(); document.body.classList.add('page-exit');
       setTimeout(() => window.location.href = a.getAttribute('href'), 300);
     }
   });
 });
 
-// Dropzone mock
-const drop = document.getElementById('drop-zone');
-drop.addEventListener('click', () => {
-  drop.innerHTML = '<div class="drop-icon">✅</div><div class="drop-text" style="color:var(--permafrost)">sample_img_001.jpg</div><div class="drop-sub">Ready to upload</div>';
-  drop.style.borderColor = 'var(--bioluminite)';
-});
-
-// Submit & Confetti
-function submitForm() {
-  document.getElementById('verdict').classList.add('show');
-  fireConfetti();
-}
-
 function fireConfetti() {
-  const canvas = document.getElementById('confetti');
-  const ctx = canvas.getContext('2d');
-  canvas.width = canvas.offsetWidth;
-  canvas.height = canvas.offsetHeight;
-  
-  let particles = [];
-  for(let i=0; i<100; i++) {
-    particles.push({
-      x: canvas.width/2, y: canvas.height/2 + 50,
-      vx: (Math.random()-0.5)*10, vy: (Math.random()-1)*15,
-      c: Math.random() > 0.5 ? '#00FFB2' : '#C6FF47',
-      s: Math.random()*6 + 4
-    });
-  }
-  
-  function animate() {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    let active = false;
-    particles.forEach(p => {
-      p.vy += 0.5; // gravity
-      p.x += p.vx; p.y += p.vy;
-      if(p.y < canvas.height) active = true;
-      ctx.fillStyle = p.c;
-      ctx.fillRect(p.x, p.y, p.s, p.s);
-    });
-    if(active && document.getElementById('verdict').classList.contains('show')) {
-      requestAnimationFrame(animate);
-    }
-  }
-  animate();
+  const canvas = $('confetti'), ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
+  const particles = [];
+  for (let i = 0; i < 100; i++) particles.push({ x: canvas.width / 2, y: canvas.height / 2 + 50, vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 1) * 15, c: Math.random() > 0.5 ? '#00FFB2' : '#C6FF47', s: Math.random() * 6 + 4 });
+  (function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height); let active = false;
+    particles.forEach(p => { p.vy += 0.5; p.x += p.vx; p.y += p.vy; if (p.y < canvas.height) active = true; ctx.fillStyle = p.c; ctx.fillRect(p.x, p.y, p.s, p.s); });
+    if (active && $('verdict').classList.contains('show')) requestAnimationFrame(animate);
+  })();
 }
+
+renderChecks(null);
+refreshSide();
 </script>
 </body>
 </html>

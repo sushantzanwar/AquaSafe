@@ -34,9 +34,23 @@ anomaly:
     chlorophyll: 0.35
 
 credits:
-  award: 10
-  duplicate_distance_m: 25
-  duplicate_seconds: 3600
+  # Verified field contributions (backend/db/credit_rules.py reads this block; every value is optional).
+  award: 10                    # legacy, unused by the verified-contribution flow
+  award_high_quality: 100      # new water body + valid evidence + high quality
+  award_acceptable_quality: 50 # new water body + valid evidence + acceptable quality
+  require_metadata: false      # temporary: photos without GPS/time are scanned but skip location/age checks
+  max_photo_age_days: 7
+  duplicate_distance_m: 25     # same-place repeat radius
+  duplicate_seconds: 3600      # same-observation repeat window
+  phash_max_distance: 6        # perceptual-hash Hamming distance treated as "same photo"
+  max_location_distance_m: 150 # photo GPS must be within this of the water-body outline
+  assumed_utc_offset_minutes: 330  # for photos whose EXIF has no time zone (IST)
+  rewards:                     # credit cost of each unlock; available=false means the feature is not built yet
+    detailed_analysis:  {cost: 500,  available: false}
+    historical_quality: {cost: 1000, available: false}
+    monitoring_alerts:  {cost: 1500, available: false}
+    advanced_report:    {cost: 2000, available: false}
+    partner_reward:     {cost: 5000, available: false}
   severity_bump: 0.15
   severity_bump_cap: 0.45
   demo_user: demo-user

@@ -4,14 +4,25 @@ import urllib.request
 import urllib.error
 from dotenv import load_dotenv
 
-# Always load the .env from ai_assistant/ dir, regardless of where this is imported from
-_ENV_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
-load_dotenv(dotenv_path=_ENV_PATH, override=True)
+# Load keys from backend/.env (primary), then ai_assistant/.env and the root .env as fallbacks.
+_AI_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_PROJECT_ROOT = os.path.dirname(_AI_DIR)
+for _p in (
+    os.path.join(_PROJECT_ROOT, "backend", ".env"),
+    os.path.join(_AI_DIR, ".env"),
+    os.path.join(_PROJECT_ROOT, ".env"),
+):
+    if os.path.exists(_p):
+        load_dotenv(dotenv_path=_p, override=False)
 
-# Also check root .env
-_ROOT_ENV = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".env")
-if os.path.exists(_ROOT_ENV):
-    load_dotenv(dotenv_path=_ROOT_ENV, override=False)
+
+def _get_api_key() -> str:
+    """First real (non-placeholder) key from GEMINI_API_KEY / LLM_API_KEY."""
+    for name in ("GEMINI_API_KEY", "LLM_API_KEY"):
+        val = os.getenv(name, "").strip().strip('"').strip("'")
+        if val and "paste_your" not in val and "your-api-key" not in val:
+            return val
+    return ""
 
 # Dynamic, grounded system prompt instructions
 SYSTEM_INSTRUCTION = """You are AquaWatch AI, an intelligent satellite hydrology and water quality expert powered by Google Gemini.
@@ -69,7 +80,7 @@ def _call_gemini_rest(model_name: str, prompt_text: str, api_key: str, timeout: 
 
 def _invoke_with_model_fallback(formatted_prompt_args: dict) -> str:
     """Attempts invocation with primary fast Gemini model, falling back gracefully."""
-    api_key = os.getenv("GEMINI_API_KEY", os.getenv("LLM_API_KEY", "")).strip().strip('"').strip("'")
+    api_key = _get_api_key()
 
     live_data = formatted_prompt_args.get("live_data", "{}")
     context = formatted_prompt_args.get("context", "")
@@ -168,7 +179,7 @@ def generate_dynamic_questions(analysis_data: dict) -> list:
     ind = analysis_data.get('indicators', {})
     anom = analysis_data.get('anomaly', {})
 
-    api_key = os.getenv("GEMINI_API_KEY", os.getenv("LLM_API_KEY", "")).strip().strip('"').strip("'")
+    api_key = _get_api_key()
     if api_key:
         q_prompt = (
             f"Given the following live water quality telemetry for {wb}:\n"

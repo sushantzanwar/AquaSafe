@@ -21,6 +21,7 @@ data/baselines/*.sqlite
 data/baselines/*.joblib
 data/credits/*.sqlite
 data/credits/uploads/
+data/uploads/
 data/cache/**
 !data/cache/.gitkeep
 !data/cache/masks/

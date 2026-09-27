@@ -207,7 +207,7 @@ a { text-decoration: none; color: inherit; }
 /* ── KPI STRIP ──────────────────────────────────── */
 .kpi-strip {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   background: var(--surface);
   border-bottom: 1px solid var(--border-sub);
 }
@@ -561,10 +561,6 @@ footer {
   </nav>
 
   <div class="nav-right">
-    <div class="sys-status">
-      <span class="sys-dot"></span>
-      SYSTEM ACTIVE
-    </div>
   </div>
 </header>
 
@@ -595,11 +591,6 @@ footer {
     <div class="kpi-label">Priority Score</div>
     <div class="kpi-val danger" id="kpi-priority">—<span style="font-size:18px;color:var(--faint)">/100</span></div>
     <div class="kpi-sub" id="kpi-date">Awaiting analysis</div>
-  </div>
-  <div class="kpi-card reveal reveal-d4">
-    <div class="kpi-label">Pipeline Confidence</div>
-    <div class="kpi-val blue" id="kpi-confidence">—<span style="font-size:20px">%</span></div>
-    <div class="kpi-sub" id="kpi-ndci">NDCI / NDTI indicators</div>
   </div>
 </div>
 
@@ -735,7 +726,7 @@ footer {
   <div class="footer-inner">
     <div class="footer-brand">AQUARADAR</div>
     <nav class="footer-links">
-      <a href="index.html">Home</a>
+
       <a href="dashboard.html">Dashboard</a>
       <a href="assistant.html">Analysis</a>
       <a href="ai-assistant.html">AI Assistant</a>
@@ -1179,13 +1170,6 @@ function updateDashboard(data, userLat = null, userLng = null) {
   document.getElementById('kpi-priority').innerHTML =
     `${data.priority.score}<span style="font-size:18px;color:var(--faint)">/100</span>`;
   document.getElementById('kpi-date').textContent = `Analysis date: ${data.date}`;
-
-  // KPI 5 — Confidence + indicators
-  const conf = Math.round(data.anomaly.confidence * 100);
-  document.getElementById('kpi-confidence').innerHTML =
-    `${conf}<span style="font-size:20px">%</span>`;
-  document.getElementById('kpi-ndci').textContent =
-    `NDCI: ${data.indicators.ndci} · NDTI: ${data.indicators.ndti} · NDWI: ${data.indicators.ndwi}`;
 
   // MAP — draw GeoJSON zone from backend response without moving camera away from clicked point
   if (zoneLayer) map.removeLayer(zoneLayer);

@@ -36,6 +36,10 @@ from core.remote_sensing import (
 from models.water_segmentation import generate_water_mask
 from core.database import init_db, save_analysis, get_history, get_baseline, get_analysis
 from core.anomaly import calculate_anomaly_score, calculate_priority
+from db.integration import persist_analysis
+from db.session import check_connection
+from db import field_routes
+import logging
 
 from fastapi.staticfiles import StaticFiles
 
@@ -49,6 +53,13 @@ from rag.assistant import generate_explanation, generate_explanation_with_source
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    db_state = check_connection()
+    if db_state["enabled"]:
+        log = logging.getLogger("uvicorn.error")
+        if db_state["connected"]:
+            log.info("PostgreSQL connected (schema revision %s)", db_state["revision"])
+        else:
+            log.warning("PostgreSQL unreachable (%s); analyses will not be persisted", db_state.get("error"))
     yield
 
 app = FastAPI(title="AquaWatch Backend API", description="Intelligence pipeline for AquaWatch", lifespan=lifespan)
@@ -59,6 +70,8 @@ app.add_middleware(
         "http://localhost:5173",
         "http://127.0.0.1:5173",
     ],
+    # Any local dev origin (Live Server, python -m http.server, the backend's own static mount, ...)
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -376,7 +389,7 @@ async def _check_osm_tile_water_and_polygon(lat: float, lon: float, zoom: int = 
                                 "type": "Polygon",
                                 "coordinates": [[list(c) for c in simplified.exterior.coords]]
                             },
-                            "properties": {}
+                            "properties": {"contour": True}  # traced from the OSM tile: a real outline, not a generated circle
                         }]
                     }
                     km_per_deg = 111.0
@@ -761,6 +774,8 @@ async def analyze_scene(request: AnalysisRequest):
     
     # 5. Save to database
     save_analysis(response_data)
+    # 6. Append to the persistent PostgreSQL analysis history (no-op without DATABASE_URL)
+    persist_analysis(response_data, analysis_type="standard", request_lat=request.lat, request_lon=request.lon)
     
     return response_data
 
@@ -1079,6 +1094,7 @@ async def stress_test_pipeline(request: StressTestRequest):
     }
     
     save_analysis(response_data)
+    persist_analysis(response_data, analysis_type="stress_test")
     
     return response_data
 
@@ -1192,6 +1208,17 @@ async def get_satellite_image_endpoint(
 ):
     img_bytes = render_thematic_layer_image(mode, lat=lat, lng=lng, date_str=date, water_body=water_body)
     return Response(content=img_bytes, media_type="image/jpeg")
+
+
+@app.get("/api/health/db")
+async def database_health():
+    """PostgreSQL connectivity and applied migration revision (no credentials are returned)."""
+    return check_connection()
+
+
+# Verified field contributions + credits (all decisions server-side; see db/verification.py)
+field_routes.set_point_lookup(_fetch_lake_at_point)
+app.include_router(field_routes.router)
 
 
 # Mount frontend directory for direct single-port access (placed AFTER all API routes)
